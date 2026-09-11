@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#ffffff" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="共用行事曆" />
+  <link rel="apple-touch-icon" href="./icons/icon-180.png" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="stylesheet" href="./style.css" />
+  <title>安全共用行事曆</title>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div><h1>共用行事曆</h1><div id="syncStatus" class="sync-status">尚未登入</div></div>
+      <button id="settingsBtn" class="icon-btn">⚙︎</button>
+    </header>
+
+    <section class="calendar-card">
+      <div class="calendar-nav">
+        <button id="prevMonth" class="nav-btn">‹</button>
+        <div><div id="monthTitle" class="month-title"></div><button id="todayBtn" class="today-btn">今天</button></div>
+        <button id="nextMonth" class="nav-btn">›</button>
+      </div>
+      <div class="weekdays"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>
+      <div id="calendarGrid" class="calendar-grid"></div>
+    </section>
+
+    <section class="day-panel">
+      <div class="day-panel-head">
+        <div><div id="selectedDateTitle" class="selected-date-title"></div><div id="selectedDateSub" class="selected-date-sub"></div></div>
+        <button id="addEventBtn" class="primary-btn">＋ 新增</button>
+      </div>
+      <div id="eventList" class="event-list"></div>
+    </section>
+  </div>
+
+  <div id="modalBackdrop" class="modal-backdrop hidden">
+    <div class="modal">
+      <div class="modal-head"><h2 id="modalTitle">新增事件</h2><button id="closeModal" class="icon-btn">✕</button></div>
+      <form id="eventForm">
+        <input id="eventId" type="hidden" />
+        <label>事件名稱<input id="eventTitle" maxlength="60" required placeholder="例如：家庭聚餐" /></label>
+        <div class="row2">
+          <label>日期<input id="eventDate" type="date" required /></label>
+          <label>時間<input id="eventTime" type="time" /></label>
+        </div>
+        <label>備註<textarea id="eventNote" rows="3" maxlength="300" placeholder="可留空"></textarea></label>
+        <div class="actions"><button type="button" id="deleteEventBtn" class="danger-btn hidden">刪除</button><div class="spacer"></div><button type="button" id="cancelEventBtn" class="secondary-btn">取消</button><button type="submit" class="primary-btn">儲存</button></div>
+      </form>
+    </div>
+  </div>
+
+  <div id="authBackdrop" class="modal-backdrop hidden">
+    <div class="modal">
+      <h2>登入共用行事曆</h2>
+      <p class="hint">使用 Email 與密碼登入。只有被管理員加入的 Email 才能開啟指定共用行事曆。</p>
+      <label>Email<input id="authEmail" type="email" autocomplete="email" placeholder="name@example.com" /></label>
+      <label>密碼<input id="authPassword" type="password" autocomplete="current-password" minlength="6" placeholder="至少 6 碼" /></label>
+      <div class="actions"><button id="registerBtn" class="secondary-btn" type="button">建立帳號</button><div class="spacer"></div><button id="loginBtn" class="primary-btn" type="button">登入</button></div>
+    </div>
+  </div>
+
+  <div id="calendarAccessBackdrop" class="modal-backdrop hidden">
+    <div class="modal">
+      <h2>選擇共用行事曆</h2>
+      <p class="hint">第一次使用可建立新的行事曆；加入別人的行事曆時，請輸入對方提供的代碼，而且管理員必須先把你的 Email 加入成員。</p>
+      <label>你的顯示名稱<input id="firstName" maxlength="20" placeholder="例如：Tyler" /></label>
+      <label>共用行事曆代碼<input id="firstCode" maxlength="30" placeholder="加入既有行事曆時填寫" /></label>
+      <div class="actions"><button id="createCalendarBtn" class="secondary-btn" type="button">建立新行事曆</button><div class="spacer"></div><button id="joinCalendarBtn" class="primary-btn" type="button">加入</button></div>
+    </div>
+  </div>
+
+  <div id="settingsBackdrop" class="modal-backdrop hidden">
+    <div class="modal">
+      <div class="modal-head"><h2>共用設定</h2><button id="closeSettings" class="icon-btn">✕</button></div>
+      <div id="accountInfo" class="hint"></div>
+      <label>你的名稱<input id="memberName" maxlength="20" /></label>
+      <label>你的顏色</label><div id="colorPicker" class="color-picker"></div>
+      <label>共用行事曆代碼<div class="share-row"><input id="calendarCode" readonly /><button id="copyCodeBtn" class="secondary-btn" type="button">複製</button></div></label>
+
+      <div id="adminSection" class="hidden">
+        <hr class="divider" />
+        <h3>管理員：邀請成員</h3>
+        <p class="hint">先加入對方的 Email，再把上面的共用代碼傳給對方。未被加入的 Email 即使知道代碼也無法讀取行事曆。</p>
+        <div class="share-row"><input id="inviteEmail" type="email" placeholder="成員 Email" /><button id="inviteBtn" class="primary-btn" type="button">加入成員</button></div>
+        <div id="memberList" class="member-list"></div>
+      </div>
+
+      <div class="actions"><button id="logoutBtn" class="danger-btn" type="button">登出</button><div class="spacer"></div><button id="saveSettingsBtn" class="primary-btn" type="button">儲存設定</button></div>
+    </div>
+  </div>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

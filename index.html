@@ -55,10 +55,13 @@
         <input id="eventId" type="hidden" />
         <label>事件名稱<input id="eventTitle" maxlength="60" required placeholder="例如：家庭聚餐" /></label>
         <div class="row2">
-          <label>日期<input id="eventDate" type="date" required /></label>
+          <label>開始日期<input id="eventDate" type="date" required /></label>
           <label>開始時間<input id="eventTime" type="time" /></label>
         </div>
-        <label>結束時間<input id="eventEndTime" type="time" /></label>
+        <div class="row2">
+          <label>結束日期<input id="eventEndDate" type="date" /></label>
+          <label>結束時間<input id="eventEndTime" type="time" /></label>
+        </div>
         <label>人物 icon</label>
         <div id="eventIconPicker" class="event-icon-picker">
           <button type="button" class="event-icon-option active" data-icon="dad" aria-label="爸爸">
@@ -74,7 +77,7 @@
             <div class="event-icon-none">—</div>
           </button>
         </div>
-        <input id="eventIcon" type="hidden" value="dad" />
+        <input id="eventIcons" type="hidden" value='["dad"]' />
 
         <label>提醒
           <select id="eventReminder">

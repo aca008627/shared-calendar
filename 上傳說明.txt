@@ -1,12 +1,26 @@
-行事曆－iPhone 原生提醒免費最終版
+行事曆－跨日事件最終版
+
+新增：
+- 開始日期
+- 開始時間
+- 結束日期
+- 結束時間
+- 支援跨日事件
+- iPhone 原生行事曆匯出支援跨日
+
+保留：
+- 人物 Icon 複選
+- Firebase 多人共用
+- 台灣節日
+- 提醒選項
+- iPhone 原生行事曆提醒
 
 更新方式：
-1. 解壓縮 ZIP。
-2. GitHub → shared-calendar → Add file → Upload files。
-3. 將全部檔案與 icons 資料夾覆蓋上傳。
-4. Commit changes，等待 GitHub Pages 更新。
-5. 在行事曆建立事件後，點該事件的「加入 iPhone 行事曆」。
-6. iPhone 開啟 .ics 後加入 Apple 行事曆。
-7. 之後提醒由 iOS 原生日曆負責，即使本 App 完全關閉也可以提醒。
+1. 解壓 ZIP
+2. GitHub → shared-calendar → Add file → Upload files
+3. 全部檔案與 icons 資料夾覆蓋
+4. Commit changes
+5. 等 GitHub Pages 更新
+6. iPhone 如仍顯示舊版，重新加入主畫面
 
-這版不需要 Blaze，也不需要綁信用卡。
+Firebase Firestore rules 不需修改。

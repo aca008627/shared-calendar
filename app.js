@@ -179,21 +179,62 @@ const EVENT_ICONS = {
   boy: { label: "小男孩", src: "./icons/characters/boy.png" }
 };
 
-function eventIconHtml(ev, cls="event-person-icon"){
-  const key = ev?.eventIcon || "";
-  const meta = EVENT_ICONS[key];
-  if(!meta) return "";
-  return `<img class="${cls}" src="${meta.src}" alt="${meta.label}">`;
+function normalizeEventIcons(ev){
+  if(Array.isArray(ev?.eventIcons)) return ev.eventIcons.filter(k=>EVENT_ICONS[k]);
+  if(ev?.eventIcon && EVENT_ICONS[ev.eventIcon]) return [ev.eventIcon];
+  return [];
 }
 
-function setEventIconPicker(value){
-  const hidden = el("eventIcon");
-  if(hidden) hidden.value = value || "";
+function eventIconHtml(ev, cls="event-person-icon"){
+  const icons = normalizeEventIcons(ev);
+  if(!icons.length) return "";
+  return `<div class="event-person-icons">${icons.map(key=>{
+    const meta = EVENT_ICONS[key];
+    return `<img class="${cls}" src="${meta.src}" alt="${meta.label}">`;
+  }).join("")}</div>`;
+}
+
+function getSelectedEventIcons(){
+  try{
+    const raw = el("eventIcons")?.value || "[]";
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr.filter(k=>EVENT_ICONS[k]) : [];
+  }catch{
+    return [];
+  }
+}
+
+function setEventIconPicker(values){
+  let selected = [];
+  if(Array.isArray(values)) selected = values.filter(k=>EVENT_ICONS[k]);
+  else if(values && EVENT_ICONS[values]) selected = [values];
+
+  const hidden = el("eventIcons");
+  if(hidden) hidden.value = JSON.stringify(selected);
+
   document.querySelectorAll(".event-icon-option").forEach(btn=>{
-    btn.classList.toggle("active", (btn.dataset.icon || "") === (value || ""));
+    const key = btn.dataset.icon || "";
+    if(!key){
+      btn.classList.toggle("active", selected.length===0);
+    }else{
+      btn.classList.toggle("active", selected.includes(key));
+    }
   });
 }
 
+function toggleEventIcon(key){
+  let selected = getSelectedEventIcons();
+
+  if(!key){
+    selected = [];
+  }else if(selected.includes(key)){
+    selected = selected.filter(x=>x!==key);
+  }else{
+    selected.push(key);
+  }
+
+  setEventIconPicker(selected);
+}
 
 let reminderTimer = null;
 const notifiedKeys = new Set(JSON.parse(localStorage.getItem("calendarNotifiedKeys") || "[]"));
@@ -225,9 +266,19 @@ function reminderText(ev){
 }
 
 function eventTimeText(ev){
+  const startDate = ev?.date || "";
+  const endDate = ev?.endDate || startDate;
   const start = ev?.time || "";
   const end = ev?.endTime || "";
-  if(!start) return "全天";
+
+  if(!start){
+    if(endDate && endDate !== startDate) return `${startDate}–${endDate} 全天`;
+    return "全天";
+  }
+
+  if(endDate && endDate !== startDate){
+    return end ? `${startDate} ${start}–${endDate} ${end}` : `${startDate} ${start}`;
+  }
   return end ? `${start}–${end}` : start;
 }
 
@@ -338,8 +389,20 @@ function renderUpcomingReminders(){
   const now = new Date();
   const end = new Date(now.getTime() + 24 * 60 * 60 * 1000);
   const upcoming = allEvents
-    .map(ev => ({ ev, start:eventStartDate(ev) }))
-    .filter(x => x.start && x.start >= now && x.start <= end)
+    .map(ev => {
+      const start = eventStartDate(ev);
+      let finish = null;
+      if(ev?.endDate && ev?.endTime){
+        finish = new Date(`${ev.endDate}T${ev.endTime}:00`);
+      }else if(start){
+        finish = start;
+      }
+      return { ev, start, finish };
+    })
+    .filter(x => x.start && (
+      (x.start >= now && x.start <= end) ||
+      (x.start < now && x.finish && x.finish >= now)
+    ))
     .sort((a,b) => a.start - b.start)
     .slice(0,6);
 
@@ -531,16 +594,18 @@ function eventToIcs(ev){
     `SUMMARY:${icsEscape(ev.title||"行事曆事件")}`
   ];
   if(ev.time){
-    let endDate=ev.date,endTime=ev.endTime;
+    let endDate=ev.endDate || ev.date;
+    let endTime=ev.endTime;
     if(!endTime){
-      const fallback=addMinutesToTime(ev.date,ev.time,60);
+      const fallback=addMinutesToTime(endDate,ev.time,60);
       endDate=fallback.date; endTime=fallback.time;
     }
     lines.push(`DTSTART;TZID=Asia/Taipei:${toIcsLocalDateTime(ev.date,ev.time)}`);
     lines.push(`DTEND;TZID=Asia/Taipei:${toIcsLocalDateTime(endDate,endTime)}`);
   }else{
+    const allDayEnd = ev.endDate ? addDaysDateOnly(ev.endDate,1) : addDaysDateOnly(ev.date,1);
     lines.push(`DTSTART;VALUE=DATE:${toIcsDate(ev.date)}`);
-    lines.push(`DTEND;VALUE=DATE:${toIcsDate(addDaysDateOnly(ev.date,1))}`);
+    lines.push(`DTEND;VALUE=DATE:${toIcsDate(allDayEnd)}`);
   }
   if(ev.note) lines.push(`DESCRIPTION:${icsEscape(ev.note)}`);
   const trigger=reminderTrigger(ev.reminderMinutes);
@@ -578,28 +643,36 @@ function renderDayEvents(){
 
 function openEventModal(ev=null){
   if(!user || !profile?.calendarCode){ alert("請先登入並開啟共用行事曆"); return; }
-  el("eventForm").reset(); el("eventId").value=ev?.id||""; el("eventTitle").value=ev?.title||""; el("eventDate").value=ev?.date||dateKey(selectedDate); el("eventTime").value=ev?.time||""; el("eventEndTime").value=ev?.endTime||""; el("eventReminder").value=String(ev?.reminderMinutes || 0); setEventIconPicker(ev?.eventIcon || "dad"); el("eventNote").value=ev?.note||""; el("modalTitle").textContent=ev?"編輯事件":"新增事件"; el("deleteEventBtn").classList.toggle("hidden",!ev); show("modalBackdrop");
+  el("eventForm").reset(); el("eventId").value=ev?.id||""; el("eventTitle").value=ev?.title||""; el("eventDate").value=ev?.date||dateKey(selectedDate); el("eventTime").value=ev?.time||""; el("eventEndDate").value=ev?.endDate||ev?.date||dateKey(selectedDate); el("eventEndTime").value=ev?.endTime||""; el("eventReminder").value=String(ev?.reminderMinutes || 0); setEventIconPicker(ev ? normalizeEventIcons(ev) : ["dad"]); el("eventNote").value=ev?.note||""; el("modalTitle").textContent=ev?"編輯事件":"新增事件"; el("deleteEventBtn").classList.toggle("hidden",!ev); show("modalBackdrop");
 }
 
 async function saveEvent(e){
   e.preventDefault();
+  const startDate = el("eventDate").value;
+  const endDate = el("eventEndDate").value || startDate;
   const startTime = el("eventTime").value;
   const endTime = el("eventEndTime").value;
+
+  if(endDate < startDate){
+    alert("結束日期不能早於開始日期。");
+    return;
+  }
   if(endTime && !startTime){
     alert("設定結束時間前，請先選擇開始時間。");
     return;
   }
-  if(startTime && endTime && endTime <= startTime){
-    alert("結束時間必須晚於開始時間。");
+  if(startDate === endDate && startTime && endTime && endTime <= startTime){
+    alert("同一天的結束時間必須晚於開始時間。");
     return;
   }
 
   const data={
     title:el("eventTitle").value.trim(),
-    date:el("eventDate").value,
+    date:startDate,
+    endDate:endDate,
     time:startTime,
     endTime:endTime,
-    eventIcon:el("eventIcon")?.value||"",
+    eventIcons:getSelectedEventIcons(),
     reminderMinutes:Number(el("eventReminder").value||0),
     note:el("eventNote").value.trim(),
     ownerName:profile.memberName,
@@ -630,9 +703,7 @@ async function inviteMember(){ if(!isAdmin()) return; const email=normalizeEmail
 async function removeMember(email){ if(!isAdmin()) return; if(confirm(`移除 ${email}？`)) await updateDoc(doc(db,"calendars",profile.calendarCode),{members:arrayRemove(normalizeEmail(email))}); }
 
 function bind(){
-  document.querySelectorAll(".event-icon-option").forEach(btn=>{
-    btn.onclick=()=>setEventIconPicker(btn.dataset.icon || "");
-  });
+  document.querySelectorAll(".event-icon-option").forEach(btn=>{ btn.onclick=()=>toggleEventIcon(btn.dataset.icon || ""); });
   el("prevMonth").onclick=()=>{currentMonth.setMonth(currentMonth.getMonth()-1);renderCalendar();}; el("nextMonth").onclick=()=>{currentMonth.setMonth(currentMonth.getMonth()+1);renderCalendar();}; el("todayBtn").onclick=()=>{selectedDate=new Date();currentMonth=new Date(selectedDate.getFullYear(),selectedDate.getMonth(),1);renderCalendar();renderDayEvents();};
   el("addEventBtn").onclick=()=>openEventModal(); el("closeModal").onclick=()=>hide("modalBackdrop"); el("cancelEventBtn").onclick=()=>hide("modalBackdrop"); el("eventForm").onsubmit=saveEvent; el("deleteEventBtn").onclick=deleteCurrentEvent;
   el("settingsBtn").onclick=()=>{openSettings();updateNotificationStatus();}; el("closeSettings").onclick=()=>hide("settingsBackdrop"); el("saveSettingsBtn").onclick=async()=>{profile.memberName=el("memberName").value.trim()||user.email.split("@")[0];saveProfile();await saveCloudProfile();hide("settingsBackdrop");renderDayEvents();};

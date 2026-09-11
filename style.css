@@ -241,3 +241,24 @@ select:focus{border-color:#90b0ff;box-shadow:0 0 0 3px rgba(47,111,237,.1)}
   .event-card{grid-template-columns:5px 1fr}
   .event-actions{grid-column:2;flex-direction:row;justify-content:flex-end}
 }
+
+
+/* ===== 人物 Icon 複選 ===== */
+.event-person-icons{
+  display:flex;
+  align-items:center;
+  flex:0 0 auto;
+  padding-left:2px;
+}
+.event-person-icons .event-person-icon,
+.event-person-icons .upcoming-person-icon{
+  margin-left:-8px;
+  border:2px solid #fff;
+}
+.event-person-icons .event-person-icon:first-child,
+.event-person-icons .upcoming-person-icon:first-child{
+  margin-left:0;
+}
+.event-icon-option.active{
+  transform:scale(1.04);
+}

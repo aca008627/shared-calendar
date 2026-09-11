@@ -29,6 +29,16 @@
       <div id="calendarGrid" class="calendar-grid"></div>
     </section>
 
+    <section id="upcomingPanel" class="upcoming-panel hidden">
+      <div class="upcoming-head">
+        <div>
+          <div class="upcoming-title">🔔 即將到來</div>
+          <div class="upcoming-sub">未來 24 小時內的事件提醒</div>
+        </div>
+      </div>
+      <div id="upcomingList" class="upcoming-list"></div>
+    </section>
+
     <section class="day-panel">
       <div class="day-panel-head">
         <div><div id="selectedDateTitle" class="selected-date-title"></div><div id="selectedDateSub" class="selected-date-sub"></div></div>
@@ -48,6 +58,39 @@
           <label>日期<input id="eventDate" type="date" required /></label>
           <label>時間<input id="eventTime" type="time" /></label>
         </div>
+        <label>人物 icon</label>
+        <div id="eventIconPicker" class="event-icon-picker">
+          <button type="button" class="event-icon-option active" data-icon="dad" aria-label="爸爸">
+            <img src="./icons/characters/dad.png" alt="爸爸">
+            <span>爸爸</span>
+          </button>
+          <button type="button" class="event-icon-option" data-icon="mom" aria-label="媽媽">
+            <img src="./icons/characters/mom.png" alt="媽媽">
+            <span>媽媽</span>
+          </button>
+          <button type="button" class="event-icon-option" data-icon="boy" aria-label="小男孩">
+            <img src="./icons/characters/boy.png" alt="小男孩">
+            <span>小男孩</span>
+          </button>
+          <button type="button" class="event-icon-option" data-icon="" aria-label="不使用">
+            <div class="event-icon-none">—</div>
+            <span>不使用</span>
+          </button>
+        </div>
+        <input id="eventIcon" type="hidden" value="dad" />
+
+        <label>提醒
+          <select id="eventReminder">
+            <option value="0">不提醒</option>
+            <option value="10">10 分鐘前</option>
+            <option value="30">30 分鐘前</option>
+            <option value="60">1 小時前</option>
+            <option value="1440">1 天前</option>
+          
+            <option value="2880">2 天前</option>
+            <option value="4320">3 天前</option>
+            <option value="10080">1 週前</option></select>
+        </label>
         <label>備註<textarea id="eventNote" rows="3" maxlength="300" placeholder="可留空"></textarea></label>
         <div class="actions"><button type="button" id="deleteEventBtn" class="danger-btn hidden">刪除</button><div class="spacer"></div><button type="button" id="cancelEventBtn" class="secondary-btn">取消</button><button type="submit" class="primary-btn">儲存</button></div>
       </form>
@@ -81,6 +124,11 @@
       <label>你的名稱<input id="memberName" maxlength="20" /></label>
       <label>你的顏色</label><div id="colorPicker" class="color-picker"></div>
       <label>共用行事曆代碼<div class="share-row"><input id="calendarCode" readonly /><button id="copyCodeBtn" class="secondary-btn" type="button">複製</button></div></label>
+      <hr class="divider" />
+      <h3>事件通知</h3>
+      <p id="notificationStatus" class="hint">尚未檢查通知權限</p>
+      <button id="enableNotificationsBtn" class="secondary-btn" type="button">啟用 iPhone 通知</button>
+
 
       <div id="adminSection" class="hidden">
         <hr class="divider" />

@@ -81,3 +81,10 @@ Safari 開啟 HTTPS 網站 → 分享 → 加入主畫面。
 - 建立／編輯事件時可選：爸爸、媽媽、小男孩、或不使用 icon。
 - 事件列表與即將到來提醒會顯示所選人物 icon。
 - 提醒新增：2 天前、3 天前、1 週前。
+
+
+## v6：重新安裝自動找回行事曆
+使用者的 calendarCode、顯示名稱與顏色會另外儲存在 Firestore `/users/{uid}`。
+因此刪除 iPhone 主畫面的 PWA 再重新加入後，只要用同一個帳號登入，會自動找回原本的共用行事曆，不需重新輸入代碼。
+
+重要：必須把新版 `firestore.rules` 貼到 Firebase Console → Firestore Database → 規則，並按「發布」。

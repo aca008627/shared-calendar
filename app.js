@@ -103,6 +103,59 @@ let selectedDate = new Date();
 let profile = JSON.parse(localStorage.getItem("sharedCalProfileSecure") || "null");
 
 function saveProfile(){ localStorage.setItem("sharedCalProfileSecure", JSON.stringify(profile)); }
+
+async function saveCloudProfile(){
+  if(!db || !user || !profile) return;
+  try{
+    await setDoc(doc(db,"users",user.uid),{
+      email: normalizeEmail(user.email),
+      calendarCode: profile.calendarCode || "",
+      memberName: profile.memberName || normalizeEmail(user.email).split("@")[0],
+      color: profile.color || COLORS[0],
+      updatedAt: serverTimestamp()
+    }, { merge:true });
+  }catch(err){
+    console.warn("雲端個人設定儲存失敗", err);
+  }
+}
+
+async function loadCloudProfile(){
+  if(!db || !user) return null;
+  try{
+    const snap = await getDoc(doc(db,"users",user.uid));
+    if(!snap.exists()) return null;
+    const d = snap.data();
+    return {
+      calendarCode: String(d.calendarCode || "").trim().toUpperCase(),
+      memberName: d.memberName || normalizeEmail(user.email).split("@")[0],
+      color: d.color || COLORS[0]
+    };
+  }catch(err){
+    console.warn("讀取雲端個人設定失敗", err);
+    return null;
+  }
+}
+
+async function restoreProfileAfterLogin(){
+  const cloud = await loadCloudProfile();
+  if(cloud?.calendarCode){
+    profile = cloud;
+    saveProfile();
+    const ok = await openCalendar(cloud.calendarCode, false);
+    if(ok) return true;
+  }
+
+  // 舊版仍可能只存在本機資料，作為第二層備援。
+  if(profile?.calendarCode){
+    const ok = await openCalendar(profile.calendarCode, false);
+    if(ok){
+      await saveCloudProfile();
+      return true;
+    }
+  }
+  return false;
+}
+
 function setStatus(t){ el("syncStatus").textContent = t; }
 function show(id){ el(id).classList.remove("hidden"); }
 function hide(id){ el(id).classList.add("hidden"); }
@@ -303,10 +356,8 @@ async function initFirebase(){
     }
     hide("authBackdrop");
     setStatus(`已登入：${u.email}`);
-    if(profile?.calendarCode){
-      const ok = await openCalendar(profile.calendarCode, false);
-      if(!ok) show("calendarAccessBackdrop");
-    }else show("calendarAccessBackdrop");
+    const restored = await restoreProfileAfterLogin();
+    if(!restored) show("calendarAccessBackdrop");
   });
 }
 
@@ -323,14 +374,27 @@ async function openCalendar(code, showError=true){
     const ref = doc(db,"calendars",normalized);
     const snap = await getDoc(ref);
     if(!snap.exists()) throw new Error("找不到這個共用行事曆");
-    const data = snap.data();
+    let data = snap.data();
     const email = normalizeEmail(user.email);
-    if(!(data.members || []).map(normalizeEmail).includes(email)) throw new Error("你的 Email 尚未被管理員加入");
+    const isOwnerUser = data.ownerUid === user.uid;
+    const members = (data.members || []).map(normalizeEmail);
+
+    // 管理員本人即使舊資料 members 缺漏，也允許自動修復。
+    if(!members.includes(email)){
+      if(isOwnerUser){
+        await updateDoc(ref,{members:arrayUnion(email)});
+        data = {...data, members:[...(data.members || []), email]};
+      }else{
+        throw new Error("你的 Email 尚未被管理員加入");
+      }
+    }
+
     profile = profile || {};
     profile.calendarCode = normalized;
     profile.memberName = profile.memberName || email.split("@")[0];
     profile.color = profile.color || COLORS[Math.floor(Math.random()*COLORS.length)];
     saveProfile();
+    await saveCloudProfile();
     subscribeCalendar(); subscribeEvents();
     hide("calendarAccessBackdrop");
     return true;
@@ -353,6 +417,7 @@ async function createCalendar(){
     createdAt:serverTimestamp()
   });
   profile={calendarCode:code,memberName:name,color:COLORS[Math.floor(Math.random()*COLORS.length)]}; saveProfile();
+  await saveCloudProfile();
   await openCalendar(code);
 }
 
@@ -408,7 +473,7 @@ async function saveEvent(e){
 async function deleteCurrentEvent(){ const id=el("eventId").value; if(id&&confirm("確定刪除這個事件？")){await deleteDoc(doc(db,"calendars",profile.calendarCode,"events",id));hide("modalBackdrop");} }
 function isAdmin(){ return !!(user && calendarMeta && calendarMeta.ownerUid===user.uid); }
 
-function renderColors(){ const w=el("colorPicker"); w.innerHTML=""; COLORS.forEach(c=>{const b=document.createElement("button");b.type="button";b.className="color-option"+(profile?.color===c?" active":"");b.style.background=c;b.onclick=()=>{profile.color=c;saveProfile();renderColors();};w.appendChild(b);}); }
+function renderColors(){ const w=el("colorPicker"); w.innerHTML=""; COLORS.forEach(c=>{const b=document.createElement("button");b.type="button";b.className="color-option"+(profile?.color===c?" active":"");b.style.background=c;b.onclick=async()=>{profile.color=c;saveProfile();await saveCloudProfile();renderColors();};w.appendChild(b);}); }
 function renderSettingsState(){
   if(!user) return; el("accountInfo").textContent=`登入帳號：${user.email}`; el("memberName").value=profile?.memberName||""; el("calendarCode").value=profile?.calendarCode||""; renderColors();
   el("adminSection").classList.toggle("hidden",!isAdmin()); const list=el("memberList"); list.innerHTML="";
@@ -421,12 +486,12 @@ async function removeMember(email){ if(!isAdmin()) return; if(confirm(`移除 ${
 function bind(){
   el("prevMonth").onclick=()=>{currentMonth.setMonth(currentMonth.getMonth()-1);renderCalendar();}; el("nextMonth").onclick=()=>{currentMonth.setMonth(currentMonth.getMonth()+1);renderCalendar();}; el("todayBtn").onclick=()=>{selectedDate=new Date();currentMonth=new Date(selectedDate.getFullYear(),selectedDate.getMonth(),1);renderCalendar();renderDayEvents();};
   el("addEventBtn").onclick=()=>openEventModal(); el("closeModal").onclick=()=>hide("modalBackdrop"); el("cancelEventBtn").onclick=()=>hide("modalBackdrop"); el("eventForm").onsubmit=saveEvent; el("deleteEventBtn").onclick=deleteCurrentEvent;
-  el("settingsBtn").onclick=()=>{openSettings();updateNotificationStatus();}; el("closeSettings").onclick=()=>hide("settingsBackdrop"); el("saveSettingsBtn").onclick=()=>{profile.memberName=el("memberName").value.trim()||user.email.split("@")[0];saveProfile();hide("settingsBackdrop");renderDayEvents();};
+  el("settingsBtn").onclick=()=>{openSettings();updateNotificationStatus();}; el("closeSettings").onclick=()=>hide("settingsBackdrop"); el("saveSettingsBtn").onclick=async()=>{profile.memberName=el("memberName").value.trim()||user.email.split("@")[0];saveProfile();await saveCloudProfile();hide("settingsBackdrop");renderDayEvents();};
   el("copyCodeBtn").onclick=async()=>{await navigator.clipboard.writeText(profile.calendarCode);alert("共用代碼已複製");}; el("enableNotificationsBtn").onclick=enableNotifications; el("inviteBtn").onclick=inviteMember;
   el("logoutBtn").onclick=async()=>{hide("settingsBackdrop");cleanupListeners();await signOut(auth);};
   el("loginBtn").onclick=async()=>{try{await signInWithEmailAndPassword(auth,normalizeEmail(el("authEmail").value),el("authPassword").value);}catch(e){alert("登入失敗："+e.message);}};
   el("registerBtn").onclick=async()=>{try{await createUserWithEmailAndPassword(auth,normalizeEmail(el("authEmail").value),el("authPassword").value);}catch(e){alert("建立帳號失敗："+e.message);}};
-  el("createCalendarBtn").onclick=createCalendar; el("joinCalendarBtn").onclick=async()=>{profile=profile||{};profile.memberName=el("firstName").value.trim()||user.email.split("@")[0];profile.color=profile.color||COLORS[Math.floor(Math.random()*COLORS.length)];saveProfile();await openCalendar(el("firstCode").value,true);};
+  el("createCalendarBtn").onclick=createCalendar; el("joinCalendarBtn").onclick=async()=>{profile=profile||{};profile.memberName=el("firstName").value.trim()||user.email.split("@")[0];profile.color=profile.color||COLORS[Math.floor(Math.random()*COLORS.length)];await openCalendar(el("firstCode").value,true);};
   if("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js");
 }
 

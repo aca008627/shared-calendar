@@ -1,27 +1,24 @@
-行事曆－人物 Icon + 完整提醒最終版
+行事曆－雲端帳號恢復最終版
 
-已整合：
-- APP 名稱：行事曆
-- FAMILY CALENDAR 主 App Icon
-- Firebase Email/密碼登入
-- 管理員與成員權限
-- 多人共同新增／修改／刪除事件
-- Firebase 即時同步
-- 成員顏色區分
-- 台灣常用國曆／農曆節日
-- 提醒：10 分鐘前、30 分鐘前、1 小時前、1 天前、2 天前、3 天前、1 週前
-- 事件人物 icon：爸爸、媽媽、小男孩、或不使用
-- 首頁未來 24 小時即將到來事件
-- iPhone 系統通知權限按鈕
-- PWA 加入主畫面
+這版修正：
+- iPhone 刪除／重新加入主畫面後，不再遺失所屬行事曆設定。
+- calendarCode、顯示名稱、顏色會存到 Firebase 使用者個人資料。
+- 同一個 Email/密碼登入後會自動找回原本行事曆。
+- 管理員舊資料若 members 欄位缺漏，會自動修復自己的成員權限。
+- 保留人物 Icon、完整提醒、節日、多人同步等全部既有功能。
 
-GitHub 覆蓋方式：
-1. 解壓縮 ZIP。
-2. GitHub → shared-calendar repository → Add file → Upload files。
-3. 將本資料夾內所有檔案與 icons 資料夾一起拖入。
+更新有兩個必要步驟：
+
+一、GitHub
+1. 解壓 ZIP。
+2. GitHub → shared-calendar → Add file → Upload files。
+3. 全部檔案與 icons 資料夾覆蓋上傳。
 4. Commit changes。
-5. 等 GitHub Pages 更新約 1～3 分鐘。
-6. 若 iPhone 還是舊版，先移除主畫面舊捷徑，再由 Safari 重新「加入主畫面」。
 
-重要：
-人物 icon 圖片位於 icons/characters/。
+二、Firebase 規則（一定要做）
+1. Firebase Console → Firestore Database → 規則。
+2. 把本 ZIP 裡 firestore.rules 的完整內容複製過去。
+3. 按「發布」。
+
+完成後：
+iPhone 即使移除主畫面的行事曆再重新加入，只要登入相同帳號，就會自動恢復原本行事曆。

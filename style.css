@@ -94,3 +94,14 @@ input:focus,textarea:focus{border-color:#90b0ff;box-shadow:0 0 0 3px rgba(47,111
 .member-list{margin-top:12px;display:flex;flex-direction:column;gap:8px}
 .member-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;font-size:13px}
 .small-btn{padding:7px 10px;font-size:12px}
+
+
+/* 台灣節日 */
+.holiday-day .day-number{color:#c63a3a;font-weight:800}
+.holiday-day.today .day-number{color:#fff}
+.holiday-name{
+  font-size:9px;line-height:1.15;color:#c63a3a;font-weight:700;
+  text-align:center;margin:1px 0 3px;min-height:10px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+@media (max-width:520px){.holiday-name{font-size:8px}}

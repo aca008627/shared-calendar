@@ -28,6 +28,70 @@ const COLORS = ["#2f6fed","#e74c3c","#20a464","#9b59b6","#f39c12","#00a6b2","#e8
 const pad = n => String(n).padStart(2,"0");
 const dateKey = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 const randomCode = () => "CAL-" + crypto.getRandomValues(new Uint32Array(1))[0].toString(36).toUpperCase().slice(0,8);
+
+// ===== 台灣節日顯示 =====
+// 顯示節日名稱，不等同政府公告的補假/連假日。
+const FIXED_HOLIDAYS = {
+  "01-01": "元旦",
+  "02-28": "和平紀念日",
+  "04-04": "兒童節",
+  "05-01": "勞動節",
+  "08-08": "父親節",
+  "10-10": "國慶日",
+  "10-25": "臺灣光復節",
+  "12-25": "聖誕節"
+};
+
+function nthWeekdayOfMonth(year, monthIndex, weekday, nth) {
+  const d = new Date(year, monthIndex, 1);
+  const shift = (weekday - d.getDay() + 7) % 7;
+  d.setDate(1 + shift + (nth - 1) * 7);
+  return d;
+}
+
+function getLunarMonthDay(date) {
+  try {
+    const fmt = new Intl.DateTimeFormat("zh-TW-u-ca-chinese", {
+      month: "numeric",
+      day: "numeric"
+    });
+    const parts = fmt.formatToParts(date);
+    const monthPart = parts.find(p => p.type === "month")?.value || "";
+    const dayPart = parts.find(p => p.type === "day")?.value || "";
+    const m = parseInt(monthPart.replace(/\D/g, ""), 10);
+    const d = parseInt(dayPart.replace(/\D/g, ""), 10);
+    if (!Number.isNaN(m) && !Number.isNaN(d)) return { month: m, day: d };
+  } catch (e) {
+    console.warn("無法取得農曆日期", e);
+  }
+  return null;
+}
+
+function getHolidayName(date) {
+  const mmdd = `${pad(date.getMonth()+1)}-${pad(date.getDate())}`;
+  const names = [];
+
+  if (FIXED_HOLIDAYS[mmdd]) names.push(FIXED_HOLIDAYS[mmdd]);
+
+  const mothersDay = nthWeekdayOfMonth(date.getFullYear(), 4, 0, 2);
+  if (dateKey(date) === dateKey(mothersDay)) names.push("母親節");
+
+  const lunar = getLunarMonthDay(date);
+  if (lunar) {
+    const key = `${lunar.month}-${lunar.day}`;
+    const lunarFestivals = {
+      "1-1": "農曆春節",
+      "1-15": "元宵節",
+      "5-5": "端午節",
+      "7-7": "七夕",
+      "8-15": "中秋節",
+      "9-9": "重陽節"
+    };
+    if (lunarFestivals[key]) names.push(lunarFestivals[key]);
+  }
+  return names.join("・");
+}
+
 const normalizeEmail = v => String(v || "").trim().toLowerCase();
 const el = id => document.getElementById(id);
 
@@ -138,14 +202,15 @@ function renderCalendar(){
     day.className="day"; day.style.borderLeft=day.style.borderRight=day.style.borderBottom="0"; day.style.backgroundColor="transparent"; day.style.font="inherit";
     if(d.getMonth()!==m) day.classList.add("other"); if(k===dateKey(new Date())) day.classList.add("today"); if(k===dateKey(selectedDate)) day.classList.add("selected");
     const events=allEvents.filter(e=>e.date===k); const dots=events.slice(0,4).map(e=>`<span class="dot" style="background:${e.color||'#2f6fed'}"></span>`).join("");
-    day.innerHTML=`<div class="day-number">${d.getDate()}</div><div class="dots">${dots}</div>`;
+    const holiday=getHolidayName(d); if(holiday) day.classList.add("holiday-day");
+    day.innerHTML=`<div class="day-number">${d.getDate()}</div>${holiday?`<div class="holiday-name">${holiday}</div>`:""}<div class="dots">${dots}</div>`;
     day.onclick=()=>{selectedDate=new Date(d);currentMonth=new Date(d.getFullYear(),d.getMonth(),1);renderCalendar();renderDayEvents();}; grid.appendChild(day);
   }
 }
 
 function renderDayEvents(){
   const k=dateKey(selectedDate),weekday=["日","一","二","三","四","五","六"][selectedDate.getDay()];
-  el("selectedDateTitle").textContent=`${selectedDate.getMonth()+1} 月 ${selectedDate.getDate()} 日`; el("selectedDateSub").textContent=`星期${weekday}`;
+  el("selectedDateTitle").textContent=`${selectedDate.getMonth()+1} 月 ${selectedDate.getDate()} 日`; const holiday=getHolidayName(selectedDate); el("selectedDateSub").textContent=holiday?`星期${weekday} · ${holiday}`:`星期${weekday}`;
   const events=allEvents.filter(e=>e.date===k).sort((a,b)=>(a.time||"99:99").localeCompare(b.time||"99:99")); const list=el("eventList"); list.innerHTML="";
   if(!user){list.innerHTML='<div class="empty">請先登入</div>';return;} if(!profile?.calendarCode){list.innerHTML='<div class="empty">請建立或加入共用行事曆</div>';return;} if(!events.length){list.innerHTML='<div class="empty">這一天還沒有事件</div>';return;}
   for(const ev of events){ const card=document.createElement("div"); card.className="event-card"; card.innerHTML=`<div class="event-stripe" style="background:${ev.color||'#2f6fed'}"></div><div><div class="event-title">${escapeHtml(ev.title||"")}</div><div class="event-meta">${ev.time||"全天"} · ${escapeHtml(ev.ownerName||"成員")}</div>${ev.note?`<div class="event-note">${escapeHtml(ev.note)}</div>`:""}</div><button class="secondary-btn">編輯</button>`; card.querySelector("button").onclick=()=>openEventModal(ev); list.appendChild(card); }

@@ -224,6 +224,14 @@ function reminderText(ev){
   return REMINDER_LABELS[mins] || `${mins} 分鐘前`;
 }
 
+function eventTimeText(ev){
+  const start = ev?.time || "";
+  const end = ev?.endTime || "";
+  if(!start) return "全天";
+  return end ? `${start}–${end}` : start;
+}
+
+
 function updateNotificationStatus(){
   const node = el("notificationStatus");
   if(!node) return;
@@ -256,6 +264,25 @@ async function enableNotifications(){
   }
 }
 
+
+async function testNotification(){
+  if(!("Notification" in window)){
+    alert("此瀏覽器不支援通知。請先將行事曆加入 iPhone 主畫面後再測試。");
+    return;
+  }
+  if(Notification.permission !== "granted"){
+    alert("請先按「啟用 iPhone 通知」並允許通知。");
+    return;
+  }
+  await showSystemNotification({
+    id:"test",
+    title:"測試通知",
+    date:dateKey(new Date()),
+    time:pad(new Date().getHours()) + ":" + pad(new Date().getMinutes()),
+    note:"如果你看到這則通知，代表 iPhone 通知權限正常。"
+  });
+}
+
 async function showSystemNotification(ev){
   const title = `行事曆提醒：${ev.title || "事件"}`;
   const body = `${ev.date}${ev.time ? " " + ev.time : ""}${ev.note ? " · " + ev.note : ""}`;
@@ -280,14 +307,17 @@ async function showSystemNotification(ev){
 function checkDueReminders(){
   if(!user || !profile?.calendarCode || !allEvents.length) return;
   const now = new Date();
-  const toleranceMs = 90 * 1000; // 每 30 秒檢查，容許 90 秒誤差。
 
   for(const ev of allEvents){
     const rAt = reminderAt(ev);
-    if(!rAt) continue;
+    const start = eventStartDate(ev);
+    if(!rAt || !start) continue;
+
     const key = `${profile.calendarCode}:${ev.id}:${ev.date}:${ev.time}:${ev.reminderMinutes}`;
-    const diff = now.getTime() - rAt.getTime();
-    if(diff >= 0 && diff <= toleranceMs && !notifiedKeys.has(key)){
+
+    // 只要提醒時間已到、事件尚未開始，而且這筆尚未提醒，就補送一次。
+    // 比原本 90 秒視窗可靠，iPhone 從背景喚醒時也比較不會漏掉。
+    if(now >= rAt && now < start && !notifiedKeys.has(key)){
       notifiedKeys.add(key);
       saveNotifiedKeys();
       if("Notification" in window && Notification.permission === "granted"){
@@ -327,7 +357,7 @@ function renderUpcomingReminders(){
       ${eventIconHtml(ev,"upcoming-person-icon")}
       <div class="upcoming-main">
         <div class="upcoming-event-title">${escapeHtml(ev.title || "")}</div>
-        <div class="upcoming-meta">${ev.date} ${ev.time || "全天"}${reminder ? ` · 🔔 ${escapeHtml(reminderText(ev))}` : ""}</div>
+        <div class="upcoming-meta">${ev.date} ${eventTimeText(ev)}${reminder ? ` · 🔔 ${escapeHtml(reminderText(ev))}` : ""}</div>
       </div>
     </div>`;
   }).join("");
@@ -338,6 +368,15 @@ function restartReminderTimer(){
   checkDueReminders();
   reminderTimer = setInterval(checkDueReminders, 30000);
 }
+
+document.addEventListener("visibilitychange", ()=>{
+  if(document.visibilityState === "visible"){
+    checkDueReminders();
+    renderUpcomingReminders();
+  }
+});
+window.addEventListener("focus", ()=>checkDueReminders());
+
 
 
 async function initFirebase(){
@@ -451,23 +490,130 @@ function renderCalendar(){
   }
 }
 
+
+function icsEscape(value){
+  return String(value || "")
+    .replace(/\\/g, "\\\\")
+    .replace(/\n/g, "\\n")
+    .replace(/,/g, "\\,")
+    .replace(/;/g, "\\;");
+}
+function toIcsLocalDateTime(dateStr,timeStr){
+  return `${String(dateStr||"").replace(/-/g,"")}T${String(timeStr||"00:00").replace(/:/g,"")}00`;
+}
+function toIcsDate(dateStr){ return String(dateStr||"").replace(/-/g,""); }
+function reminderTrigger(minutes){
+  const mins=Number(minutes||0);
+  if(!mins) return "";
+  if(mins%10080===0) return `-P${mins/10080}W`;
+  if(mins%1440===0) return `-P${mins/1440}D`;
+  if(mins%60===0) return `-PT${mins/60}H`;
+  return `-PT${mins}M`;
+}
+function addDaysDateOnly(dateStr,days){
+  const d=new Date(`${dateStr}T12:00:00`);
+  d.setDate(d.getDate()+days);
+  return dateKey(d);
+}
+function addMinutesToTime(dateStr,timeStr,minutes){
+  const d=new Date(`${dateStr}T${timeStr}:00`);
+  d.setMinutes(d.getMinutes()+minutes);
+  return {date:dateKey(d),time:`${pad(d.getHours())}:${pad(d.getMinutes())}`};
+}
+function eventToIcs(ev){
+  const uid=`${ev.id||Date.now()}-${profile?.calendarCode||"calendar"}@family-calendar`;
+  const dtstamp=new Date().toISOString().replace(/[-:]/g,"").replace(/\.\d{3}Z$/,"Z");
+  const lines=[
+    "BEGIN:VCALENDAR","VERSION:2.0",
+    "PRODID:-//Family Calendar//iPhone Export//ZH-TW",
+    "CALSCALE:GREGORIAN","METHOD:PUBLISH","BEGIN:VEVENT",
+    `UID:${icsEscape(uid)}`,`DTSTAMP:${dtstamp}`,
+    `SUMMARY:${icsEscape(ev.title||"行事曆事件")}`
+  ];
+  if(ev.time){
+    let endDate=ev.date,endTime=ev.endTime;
+    if(!endTime){
+      const fallback=addMinutesToTime(ev.date,ev.time,60);
+      endDate=fallback.date; endTime=fallback.time;
+    }
+    lines.push(`DTSTART;TZID=Asia/Taipei:${toIcsLocalDateTime(ev.date,ev.time)}`);
+    lines.push(`DTEND;TZID=Asia/Taipei:${toIcsLocalDateTime(endDate,endTime)}`);
+  }else{
+    lines.push(`DTSTART;VALUE=DATE:${toIcsDate(ev.date)}`);
+    lines.push(`DTEND;VALUE=DATE:${toIcsDate(addDaysDateOnly(ev.date,1))}`);
+  }
+  if(ev.note) lines.push(`DESCRIPTION:${icsEscape(ev.note)}`);
+  const trigger=reminderTrigger(ev.reminderMinutes);
+  if(trigger){
+    lines.push("BEGIN:VALARM",`TRIGGER:${trigger}`,"ACTION:DISPLAY",
+      `DESCRIPTION:${icsEscape(ev.title||"行事曆提醒")}`,"END:VALARM");
+  }
+  lines.push("END:VEVENT","END:VCALENDAR");
+  return lines.join("\r\n");
+}
+function exportEventToAppleCalendar(ev){
+  try{
+    const blob=new Blob([eventToIcs(ev)],{type:"text/calendar;charset=utf-8"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=url;
+    a.download=`${String(ev.title||"行事曆事件").replace(/[\\/:*?"<>|]/g,"_")}.ics`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),5000);
+  }catch(err){
+    console.error(err);
+    alert("無法建立 iPhone 行事曆檔案。");
+  }
+}
+
 function renderDayEvents(){
   const k=dateKey(selectedDate),weekday=["日","一","二","三","四","五","六"][selectedDate.getDay()];
   el("selectedDateTitle").textContent=`${selectedDate.getMonth()+1} 月 ${selectedDate.getDate()} 日`; const holiday=getHolidayName(selectedDate); el("selectedDateSub").textContent=holiday?`星期${weekday} · ${holiday}`:`星期${weekday}`;
   const events=allEvents.filter(e=>e.date===k).sort((a,b)=>(a.time||"99:99").localeCompare(b.time||"99:99")); const list=el("eventList"); list.innerHTML="";
   if(!user){list.innerHTML='<div class="empty">請先登入</div>';return;} if(!profile?.calendarCode){list.innerHTML='<div class="empty">請建立或加入共用行事曆</div>';return;} if(!events.length){list.innerHTML='<div class="empty">這一天還沒有事件</div>';return;}
-  for(const ev of events){ const card=document.createElement("div"); card.className="event-card"; card.innerHTML=`<div class="event-stripe" style="background:${ev.color||'#2f6fed'}"></div><div><div class="event-title">${escapeHtml(ev.title||"")}</div><div class="event-meta">${ev.time||"全天"} · ${escapeHtml(ev.ownerName||"成員")}${Number(ev.reminderMinutes||0)?` · 🔔 ${escapeHtml(reminderText(ev))}`:""}</div>${ev.note?`<div class="event-note">${escapeHtml(ev.note)}</div>`:""}</div><button class="secondary-btn">編輯</button>`; card.querySelector("button").onclick=()=>openEventModal(ev); list.appendChild(card); }
+  for(const ev of events){ const card=document.createElement("div"); card.className="event-card"; card.innerHTML=`<div class="event-stripe" style="background:${ev.color||'#2f6fed'}"></div><div class="event-card-main">${eventIconHtml(ev)}<div class="event-card-text"><div class="event-title">${escapeHtml(ev.title||"")}</div><div class="event-meta">${eventTimeText(ev)} · ${escapeHtml(ev.ownerName||"成員")}${Number(ev.reminderMinutes||0)?` · 🔔 ${escapeHtml(reminderText(ev))}`:""}</div>${ev.note?`<div class="event-note">${escapeHtml(ev.note)}</div>`:""}</div></div><div class="event-actions"><button class="secondary-btn apple-calendar-btn" type="button">加入 iPhone 行事曆</button><button class="secondary-btn edit-event-btn" type="button">編輯</button></div>`; card.querySelector(".apple-calendar-btn").onclick=()=>exportEventToAppleCalendar(ev); card.querySelector(".edit-event-btn").onclick=()=>openEventModal(ev); list.appendChild(card); }
 }
 
 function openEventModal(ev=null){
   if(!user || !profile?.calendarCode){ alert("請先登入並開啟共用行事曆"); return; }
-  el("eventForm").reset(); el("eventId").value=ev?.id||""; el("eventTitle").value=ev?.title||""; el("eventDate").value=ev?.date||dateKey(selectedDate); el("eventTime").value=ev?.time||""; el("eventReminder").value=String(ev?.reminderMinutes || 0); setEventIconPicker(ev?.eventIcon || "dad"); el("eventNote").value=ev?.note||""; el("modalTitle").textContent=ev?"編輯事件":"新增事件"; el("deleteEventBtn").classList.toggle("hidden",!ev); show("modalBackdrop");
+  el("eventForm").reset(); el("eventId").value=ev?.id||""; el("eventTitle").value=ev?.title||""; el("eventDate").value=ev?.date||dateKey(selectedDate); el("eventTime").value=ev?.time||""; el("eventEndTime").value=ev?.endTime||""; el("eventReminder").value=String(ev?.reminderMinutes || 0); setEventIconPicker(ev?.eventIcon || "dad"); el("eventNote").value=ev?.note||""; el("modalTitle").textContent=ev?"編輯事件":"新增事件"; el("deleteEventBtn").classList.toggle("hidden",!ev); show("modalBackdrop");
 }
 
 async function saveEvent(e){
   e.preventDefault();
-  const data={title:el("eventTitle").value.trim(),date:el("eventDate").value,time:el("eventTime").value,eventIcon:el("eventIcon")?.value||"",reminderMinutes:Number(el("eventReminder").value||0),note:el("eventNote").value.trim(),ownerName:profile.memberName,ownerEmail:normalizeEmail(user.email),color:profile.color,updatedAt:serverTimestamp()};
-  const id=el("eventId").value; if(id) await updateDoc(doc(db,"calendars",profile.calendarCode,"events",id),data); else {data.createdAt=serverTimestamp(); await addDoc(collection(db,"calendars",profile.calendarCode,"events"),data);} hide("modalBackdrop");
+  const startTime = el("eventTime").value;
+  const endTime = el("eventEndTime").value;
+  if(endTime && !startTime){
+    alert("設定結束時間前，請先選擇開始時間。");
+    return;
+  }
+  if(startTime && endTime && endTime <= startTime){
+    alert("結束時間必須晚於開始時間。");
+    return;
+  }
+
+  const data={
+    title:el("eventTitle").value.trim(),
+    date:el("eventDate").value,
+    time:startTime,
+    endTime:endTime,
+    eventIcon:el("eventIcon")?.value||"",
+    reminderMinutes:Number(el("eventReminder").value||0),
+    note:el("eventNote").value.trim(),
+    ownerName:profile.memberName,
+    ownerEmail:normalizeEmail(user.email),
+    color:profile.color,
+    updatedAt:serverTimestamp()
+  };
+  const id=el("eventId").value;
+  if(id) await updateDoc(doc(db,"calendars",profile.calendarCode,"events",id),data);
+  else {
+    data.createdAt=serverTimestamp();
+    await addDoc(collection(db,"calendars",profile.calendarCode,"events"),data);
+  }
+  hide("modalBackdrop");
 }
 
 async function deleteCurrentEvent(){ const id=el("eventId").value; if(id&&confirm("確定刪除這個事件？")){await deleteDoc(doc(db,"calendars",profile.calendarCode,"events",id));hide("modalBackdrop");} }
@@ -484,10 +630,13 @@ async function inviteMember(){ if(!isAdmin()) return; const email=normalizeEmail
 async function removeMember(email){ if(!isAdmin()) return; if(confirm(`移除 ${email}？`)) await updateDoc(doc(db,"calendars",profile.calendarCode),{members:arrayRemove(normalizeEmail(email))}); }
 
 function bind(){
+  document.querySelectorAll(".event-icon-option").forEach(btn=>{
+    btn.onclick=()=>setEventIconPicker(btn.dataset.icon || "");
+  });
   el("prevMonth").onclick=()=>{currentMonth.setMonth(currentMonth.getMonth()-1);renderCalendar();}; el("nextMonth").onclick=()=>{currentMonth.setMonth(currentMonth.getMonth()+1);renderCalendar();}; el("todayBtn").onclick=()=>{selectedDate=new Date();currentMonth=new Date(selectedDate.getFullYear(),selectedDate.getMonth(),1);renderCalendar();renderDayEvents();};
   el("addEventBtn").onclick=()=>openEventModal(); el("closeModal").onclick=()=>hide("modalBackdrop"); el("cancelEventBtn").onclick=()=>hide("modalBackdrop"); el("eventForm").onsubmit=saveEvent; el("deleteEventBtn").onclick=deleteCurrentEvent;
   el("settingsBtn").onclick=()=>{openSettings();updateNotificationStatus();}; el("closeSettings").onclick=()=>hide("settingsBackdrop"); el("saveSettingsBtn").onclick=async()=>{profile.memberName=el("memberName").value.trim()||user.email.split("@")[0];saveProfile();await saveCloudProfile();hide("settingsBackdrop");renderDayEvents();};
-  el("copyCodeBtn").onclick=async()=>{await navigator.clipboard.writeText(profile.calendarCode);alert("共用代碼已複製");}; el("enableNotificationsBtn").onclick=enableNotifications; el("inviteBtn").onclick=inviteMember;
+  el("copyCodeBtn").onclick=async()=>{await navigator.clipboard.writeText(profile.calendarCode);alert("共用代碼已複製");}; el("enableNotificationsBtn").onclick=enableNotifications; el("testNotificationBtn").onclick=testNotification; el("inviteBtn").onclick=inviteMember;
   el("logoutBtn").onclick=async()=>{hide("settingsBackdrop");cleanupListeners();await signOut(auth);};
   el("loginBtn").onclick=async()=>{try{await signInWithEmailAndPassword(auth,normalizeEmail(el("authEmail").value),el("authPassword").value);}catch(e){alert("登入失敗："+e.message);}};
   el("registerBtn").onclick=async()=>{try{await createUserWithEmailAndPassword(auth,normalizeEmail(el("authEmail").value),el("authPassword").value);}catch(e){alert("建立帳號失敗："+e.message);}};

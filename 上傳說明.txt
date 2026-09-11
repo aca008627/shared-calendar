@@ -1,24 +1,12 @@
-行事曆－雲端帳號恢復最終版
+行事曆－iPhone 原生提醒免費最終版
 
-這版修正：
-- iPhone 刪除／重新加入主畫面後，不再遺失所屬行事曆設定。
-- calendarCode、顯示名稱、顏色會存到 Firebase 使用者個人資料。
-- 同一個 Email/密碼登入後會自動找回原本行事曆。
-- 管理員舊資料若 members 欄位缺漏，會自動修復自己的成員權限。
-- 保留人物 Icon、完整提醒、節日、多人同步等全部既有功能。
-
-更新有兩個必要步驟：
-
-一、GitHub
-1. 解壓 ZIP。
+更新方式：
+1. 解壓縮 ZIP。
 2. GitHub → shared-calendar → Add file → Upload files。
-3. 全部檔案與 icons 資料夾覆蓋上傳。
-4. Commit changes。
+3. 將全部檔案與 icons 資料夾覆蓋上傳。
+4. Commit changes，等待 GitHub Pages 更新。
+5. 在行事曆建立事件後，點該事件的「加入 iPhone 行事曆」。
+6. iPhone 開啟 .ics 後加入 Apple 行事曆。
+7. 之後提醒由 iOS 原生日曆負責，即使本 App 完全關閉也可以提醒。
 
-二、Firebase 規則（一定要做）
-1. Firebase Console → Firestore Database → 規則。
-2. 把本 ZIP 裡 firestore.rules 的完整內容複製過去。
-3. 按「發布」。
-
-完成後：
-iPhone 即使移除主畫面的行事曆再重新加入，只要登入相同帳號，就會自動恢復原本行事曆。
+這版不需要 Blaze，也不需要綁信用卡。

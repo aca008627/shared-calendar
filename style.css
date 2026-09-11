@@ -205,3 +205,39 @@ select:focus{border-color:#90b0ff;box-shadow:0 0 0 3px rgba(47,111,237,.1)}
   .event-icon-option img,.event-icon-none{width:40px;height:40px}
   .event-icon-option span{font-size:10px}
 }
+
+
+/* Icon-only picker */
+.event-icon-picker{
+  display:grid;
+  grid-template-columns:repeat(4,56px);
+  gap:10px;
+  justify-content:start;
+}
+.event-icon-option{
+  width:56px;
+  height:56px;
+  padding:4px;
+  border-radius:50%;
+  overflow:hidden;
+}
+.event-icon-option img,
+.event-icon-none{
+  width:46px;
+  height:46px;
+  border-radius:50%;
+}
+.event-icon-option span{display:none!important}
+.event-icon-option.active{
+  border-color:#2f6fed;
+  box-shadow:0 0 0 3px rgba(47,111,237,.2);
+}
+#testNotificationBtn{margin-left:8px}
+
+.event-actions{display:flex;flex-direction:column;gap:6px;align-items:stretch}
+.apple-calendar-btn{font-size:11px;padding:8px 10px;white-space:nowrap}
+.edit-event-btn{font-size:12px;padding:8px 10px}
+@media (max-width:520px){
+  .event-card{grid-template-columns:5px 1fr}
+  .event-actions{grid-column:2;flex-direction:row;justify-content:flex-end}
+}

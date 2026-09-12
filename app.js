@@ -24,7 +24,7 @@ const firebaseConfig = {
   appId: "1:221775752292:web:dae48c0ed86fa660230371"
 };
 
-const BUILD_VERSION = "20260912-v23";
+const BUILD_VERSION = "20260912-v24";
 const COLORS = ["#2f6fed","#e74c3c","#20a464","#9b59b6","#f39c12","#00a6b2","#e84393","#6c5ce7"];
 const pad = n => String(n).padStart(2,"0");
 const dateKey = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;

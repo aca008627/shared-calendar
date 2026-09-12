@@ -700,3 +700,53 @@ select:focus{border-color:#90b0ff;box-shadow:0 0 0 3px rgba(47,111,237,.1)}
     font-size:10px;
   }
 }
+
+
+/* ===== V24：選取日期更明顯 + 六日紅色 ===== */
+.weekdays span:first-child,
+.weekdays span:last-child{
+  color:var(--danger);
+  font-weight:800;
+}
+
+.calendar-grid .day:nth-child(7n+1) .day-number,
+.calendar-grid .day:nth-child(7n) .day-number{
+  color:var(--danger);
+  font-weight:700;
+}
+
+.day.selected{
+  background:linear-gradient(180deg,#eef4ff 0%,#e4eeff 100%);
+  border-radius:16px;
+  box-shadow:inset 0 0 0 2px rgba(47,111,237,.45), 0 6px 14px rgba(47,111,237,.10);
+}
+
+.day.selected .day-number{
+  background:var(--accent);
+  color:#fff !important;
+  font-weight:800;
+  box-shadow:0 4px 10px rgba(47,111,237,.28);
+}
+
+.day.selected .calendar-event-title{
+  font-weight:700;
+}
+
+.day.selected .holiday-name{
+  font-weight:800;
+}
+
+/* 跳轉全年總覽也同步把六日標頭改紅，選取日期更明顯 */
+.mini-weekdays span:first-child,
+.mini-weekdays span:last-child{
+  color:var(--danger);
+  font-weight:800;
+}
+
+.mini-day.selected{
+  background:var(--accent);
+  color:#fff;
+  font-weight:800;
+  box-shadow:0 4px 10px rgba(47,111,237,.28);
+  transform:scale(1.08);
+}

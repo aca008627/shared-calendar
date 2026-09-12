@@ -1,11 +1,11 @@
-const CACHE = "shared-calendar-v23-year-overview";
+const CACHE = "shared-calendar-v24-selected-weekend";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./style.css?v=20260912-v23",
-  "./app.js?v=20260912-v23",
-  "./manifest.webmanifest?v=20260912-v23",
-  "./icons/icon-180.png?v=20260912-v23",
+  "./style.css?v=20260912-v24",
+  "./app.js?v=20260912-v24",
+  "./manifest.webmanifest?v=20260912-v24",
+  "./icons/icon-180.png?v=20260912-v24",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
   "./icons/characters/dad.png",

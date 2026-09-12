@@ -120,32 +120,43 @@
   </div>
 
   
+  
   <div id="dateJumpBackdrop" class="modal-backdrop hidden">
-    <div class="modal date-jump-modal">
+    <div class="modal date-jump-calendar-modal">
       <div class="modal-head">
-        <h2>跳到指定日期</h2>
+        <h2>選擇日期</h2>
         <button id="closeDateJump" class="icon-btn" type="button">✕</button>
       </div>
 
-      <div class="date-jump-selects">
-        <label>年份
-          <select id="jumpYear"></select>
-        </label>
-        <label>月份
-          <select id="jumpMonth"></select>
-        </label>
-        <label>日期
-          <select id="jumpDay"></select>
-        </label>
+      <div class="jump-calendar-nav">
+        <button id="jumpPrevMonth" class="jump-nav-btn" type="button">‹</button>
+        <button id="jumpMonthTitle" class="jump-month-title" type="button"></button>
+        <button id="jumpNextMonth" class="jump-nav-btn" type="button">›</button>
       </div>
 
-      <div class="actions">
+      <div id="jumpYearPanel" class="jump-year-panel hidden">
+        <div class="jump-year-row">
+          <button id="jumpYearPrev" class="secondary-btn" type="button">‹ 前一年</button>
+          <select id="jumpYearSelect" aria-label="選擇年份"></select>
+          <button id="jumpYearNext" class="secondary-btn" type="button">後一年 ›</button>
+        </div>
+        <div id="jumpMonthPicker" class="jump-month-picker"></div>
+      </div>
+
+      <div class="jump-weekdays">
+        <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+      </div>
+      <div id="jumpCalendarGrid" class="jump-calendar-grid"></div>
+
+      <div class="actions jump-calendar-actions">
         <button id="jumpTodayBtn" class="secondary-btn" type="button">今天</button>
         <div class="spacer"></div>
-        <button id="confirmDateJump" class="primary-btn" type="button">前往</button>
+        <button id="cancelDateJump" class="secondary-btn" type="button">取消</button>
       </div>
     </div>
   </div>
+
+</div>
 
 <div id="authBackdrop" class="modal-backdrop hidden">
     <div class="modal">

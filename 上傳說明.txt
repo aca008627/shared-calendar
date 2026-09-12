@@ -1,26 +1,27 @@
-行事曆－跨日事件最終版
+行事曆－完整登入體驗最終版
 
 新增：
-- 開始日期
-- 開始時間
-- 結束日期
-- 結束時間
-- 支援跨日事件
-- iPhone 原生行事曆匯出支援跨日
+- 忘記密碼
+- Firebase 密碼重設信
+- 登入／註冊錯誤中文化
 
 保留：
+- 月曆直接顯示事件標題
+- 事件週期
+- 開始／結束日期時間
+- 跨日事件
 - 人物 Icon 複選
 - Firebase 多人共用
 - 台灣節日
 - 提醒選項
-- iPhone 原生行事曆提醒
+- iPhone 原生行事曆匯出
 
-更新方式：
+更新：
 1. 解壓 ZIP
 2. GitHub → shared-calendar → Add file → Upload files
 3. 全部檔案與 icons 資料夾覆蓋
 4. Commit changes
 5. 等 GitHub Pages 更新
-6. iPhone 如仍顯示舊版，重新加入主畫面
+6. iPhone 若仍是舊版，移除主畫面捷徑再重新加入
 
-Firebase Firestore rules 不需修改。
+Firestore rules 不需修改。

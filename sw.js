@@ -1,5 +1,5 @@
 
-const CACHE = "shared-calendar-v10-cross-day-events";
+const CACHE = "shared-calendar-v12-password-reset-zh";
 const ASSETS = ["./","./index.html","./style.css","./app.js","./manifest.webmanifest","./icons/icon-180.png","./icons/icon-192.png","./icons/icon-512.png","./icons/characters/dad.png","./icons/characters/mom.png","./icons/characters/boy.png"];
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));

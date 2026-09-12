@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import {
   getAuth, onAuthStateChanged, createUserWithEmailAndPassword,
-  signInWithEmailAndPassword, signOut
+  signInWithEmailAndPassword, sendPasswordResetEmail, signOut
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import {
   getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, getDoc, setDoc,
@@ -93,6 +93,40 @@ function getHolidayName(date) {
 }
 
 const normalizeEmail = v => String(v || "").trim().toLowerCase();
+
+function authErrorMessage(err){
+  const code=err?.code||"";
+  const map={
+    "auth/email-already-in-use":"此 Email 已有帳號，請直接登入；若忘記密碼，請使用「忘記密碼」。",
+    "auth/invalid-email":"Email 格式不正確，請重新確認。",
+    "auth/weak-password":"密碼強度不足，請至少使用 6 個字元。",
+    "auth/invalid-credential":"Email 或密碼錯誤，請重新確認。",
+    "auth/wrong-password":"密碼錯誤，請重新輸入。",
+    "auth/user-not-found":"找不到這個帳號，請確認 Email 是否正確，或先建立帳號。",
+    "auth/too-many-requests":"嘗試次數過多，請稍後再試。",
+    "auth/network-request-failed":"網路連線失敗，請確認網路後再試。",
+    "auth/user-disabled":"此帳號已被停用，請聯絡管理員。",
+    "auth/missing-password":"請輸入密碼。",
+    "auth/operation-not-allowed":"目前未啟用這種登入方式，請聯絡管理員。"
+  };
+  return map[code]||"操作失敗，請稍後再試。";
+}
+
+async function forgotPassword(){
+  const email=normalizeEmail(el("authEmail").value);
+  if(!email){
+    alert("請先輸入你的 Email。");
+    return;
+  }
+  try{
+    await sendPasswordResetEmail(auth,email);
+    alert("重設密碼信已寄出，請到 Email 收件匣查看；若沒有看到，也請檢查垃圾郵件。");
+  }catch(err){
+    console.error(err);
+    alert(authErrorMessage(err));
+  }
+}
+
 const el = id => document.getElementById(id);
 
 let app, auth, db, user = null;
@@ -539,6 +573,45 @@ function subscribeEvents(){
   },err=>{ console.error(err); setStatus("同步錯誤"); });
 }
 
+
+function startOfDay(d){ return new Date(d.getFullYear(),d.getMonth(),d.getDate()); }
+function eventOccursOnDate(ev,targetDate){
+  if(!ev?.date) return false;
+  const target=startOfDay(targetDate);
+  const start=startOfDay(new Date(`${ev.date}T12:00:00`));
+  if(target<start) return false;
+  if(ev.recurrenceUntil){
+    const until=startOfDay(new Date(`${ev.recurrenceUntil}T12:00:00`));
+    if(target>until) return false;
+  }
+  const rec=ev.recurrence||"none";
+  if(rec==="none"){
+    const end=startOfDay(new Date(`${ev.endDate||ev.date}T12:00:00`));
+    return target>=start && target<=end;
+  }
+  const diffDays=Math.round((target-start)/86400000);
+  if(rec==="daily") return diffDays>=0;
+  if(rec==="weekly") return diffDays>=0 && diffDays%7===0;
+  if(rec==="monthly") return target.getDate()===start.getDate();
+  if(rec==="yearly") return target.getMonth()===start.getMonth() && target.getDate()===start.getDate();
+  return false;
+}
+function eventsForDate(date){ return allEvents.filter(ev=>eventOccursOnDate(ev,date)); }
+function recurrenceLabel(ev){
+  return ({none:"不重複",daily:"每天",weekly:"每週",monthly:"每月",yearly:"每年"})[ev?.recurrence||"none"]||"不重複";
+}
+function recurrenceRRule(ev){
+  const rec=ev?.recurrence||"none";
+  if(rec==="none") return "";
+  const map={daily:"DAILY",weekly:"WEEKLY",monthly:"MONTHLY",yearly:"YEARLY"};
+  let rule=`RRULE:FREQ=${map[rec]}`;
+  if(ev.recurrenceUntil){
+    const d=new Date(`${ev.recurrenceUntil}T23:59:59`);
+    rule+=`;UNTIL=${d.toISOString().replace(/[-:]/g,"").replace(/\.\d{3}Z$/,"Z")}`;
+  }
+  return rule;
+}
+
 function renderCalendar(){
   const y=currentMonth.getFullYear(),m=currentMonth.getMonth(); el("monthTitle").textContent=`${y} 年 ${m+1} 月`;
   const start=new Date(y,m,1-new Date(y,m,1).getDay()); const grid=el("calendarGrid"); grid.innerHTML="";
@@ -546,9 +619,11 @@ function renderCalendar(){
     const d=new Date(start); d.setDate(start.getDate()+i); const k=dateKey(d); const day=document.createElement("button");
     day.className="day"; day.style.borderLeft=day.style.borderRight=day.style.borderBottom="0"; day.style.backgroundColor="transparent"; day.style.font="inherit";
     if(d.getMonth()!==m) day.classList.add("other"); if(k===dateKey(new Date())) day.classList.add("today"); if(k===dateKey(selectedDate)) day.classList.add("selected");
-    const events=allEvents.filter(e=>e.date===k); const dots=events.slice(0,4).map(e=>`<span class="dot" style="background:${e.color||'#2f6fed'}"></span>`).join("");
+    const events=eventsForDate(d);
     const holiday=getHolidayName(d); if(holiday) day.classList.add("holiday-day");
-    day.innerHTML=`<div class="day-number">${d.getDate()}</div>${holiday?`<div class="holiday-name">${holiday}</div>`:""}<div class="dots">${dots}</div>`;
+    const shown=events.slice(0,3).map(e=>`<div class="calendar-event-title" style="--event-color:${e.color||'#2f6fed'}"><span class="calendar-event-dot"></span><span>${escapeHtml(e.title||"事件")}</span></div>`).join("");
+    const more=events.length>3?`<div class="calendar-event-more">+${events.length-3}</div>`:"";
+    day.innerHTML=`<div class="day-number">${d.getDate()}</div>${holiday?`<div class="holiday-name">${holiday}</div>`:""}<div class="calendar-events">${shown}${more}</div>`;
     day.onclick=()=>{selectedDate=new Date(d);currentMonth=new Date(d.getFullYear(),d.getMonth(),1);renderCalendar();renderDayEvents();}; grid.appendChild(day);
   }
 }
@@ -608,6 +683,8 @@ function eventToIcs(ev){
     lines.push(`DTEND;VALUE=DATE:${toIcsDate(allDayEnd)}`);
   }
   if(ev.note) lines.push(`DESCRIPTION:${icsEscape(ev.note)}`);
+  const rrule=recurrenceRRule(ev);
+  if(rrule) lines.push(rrule);
   const trigger=reminderTrigger(ev.reminderMinutes);
   if(trigger){
     lines.push("BEGIN:VALARM",`TRIGGER:${trigger}`,"ACTION:DISPLAY",
@@ -636,14 +713,14 @@ function exportEventToAppleCalendar(ev){
 function renderDayEvents(){
   const k=dateKey(selectedDate),weekday=["日","一","二","三","四","五","六"][selectedDate.getDay()];
   el("selectedDateTitle").textContent=`${selectedDate.getMonth()+1} 月 ${selectedDate.getDate()} 日`; const holiday=getHolidayName(selectedDate); el("selectedDateSub").textContent=holiday?`星期${weekday} · ${holiday}`:`星期${weekday}`;
-  const events=allEvents.filter(e=>e.date===k).sort((a,b)=>(a.time||"99:99").localeCompare(b.time||"99:99")); const list=el("eventList"); list.innerHTML="";
+  const events=eventsForDate(selectedDate).sort((a,b)=>(a.time||"99:99").localeCompare(b.time||"99:99")); const list=el("eventList"); list.innerHTML="";
   if(!user){list.innerHTML='<div class="empty">請先登入</div>';return;} if(!profile?.calendarCode){list.innerHTML='<div class="empty">請建立或加入共用行事曆</div>';return;} if(!events.length){list.innerHTML='<div class="empty">這一天還沒有事件</div>';return;}
-  for(const ev of events){ const card=document.createElement("div"); card.className="event-card"; card.innerHTML=`<div class="event-stripe" style="background:${ev.color||'#2f6fed'}"></div><div class="event-card-main">${eventIconHtml(ev)}<div class="event-card-text"><div class="event-title">${escapeHtml(ev.title||"")}</div><div class="event-meta">${eventTimeText(ev)} · ${escapeHtml(ev.ownerName||"成員")}${Number(ev.reminderMinutes||0)?` · 🔔 ${escapeHtml(reminderText(ev))}`:""}</div>${ev.note?`<div class="event-note">${escapeHtml(ev.note)}</div>`:""}</div></div><div class="event-actions"><button class="secondary-btn apple-calendar-btn" type="button">加入 iPhone 行事曆</button><button class="secondary-btn edit-event-btn" type="button">編輯</button></div>`; card.querySelector(".apple-calendar-btn").onclick=()=>exportEventToAppleCalendar(ev); card.querySelector(".edit-event-btn").onclick=()=>openEventModal(ev); list.appendChild(card); }
+  for(const ev of events){ const card=document.createElement("div"); card.className="event-card"; card.innerHTML=`<div class="event-stripe" style="background:${ev.color||'#2f6fed'}"></div><div class="event-card-main">${eventIconHtml(ev)}<div class="event-card-text"><div class="event-title">${escapeHtml(ev.title||"")}</div><div class="event-meta">${eventTimeText(ev)} · ${escapeHtml(ev.ownerName||"成員")}${(ev.recurrence||"none")!=="none"?` · 🔁 ${recurrenceLabel(ev)}`:""}${Number(ev.reminderMinutes||0)?` · 🔔 ${escapeHtml(reminderText(ev))}`:""}</div>${ev.note?`<div class="event-note">${escapeHtml(ev.note)}</div>`:""}</div></div><div class="event-actions"><button class="secondary-btn apple-calendar-btn" type="button">加入 iPhone 行事曆</button><button class="secondary-btn edit-event-btn" type="button">編輯</button></div>`; card.querySelector(".apple-calendar-btn").onclick=()=>exportEventToAppleCalendar(ev); card.querySelector(".edit-event-btn").onclick=()=>openEventModal(ev); list.appendChild(card); }
 }
 
 function openEventModal(ev=null){
   if(!user || !profile?.calendarCode){ alert("請先登入並開啟共用行事曆"); return; }
-  el("eventForm").reset(); el("eventId").value=ev?.id||""; el("eventTitle").value=ev?.title||""; el("eventDate").value=ev?.date||dateKey(selectedDate); el("eventTime").value=ev?.time||""; el("eventEndDate").value=ev?.endDate||ev?.date||dateKey(selectedDate); el("eventEndTime").value=ev?.endTime||""; el("eventReminder").value=String(ev?.reminderMinutes || 0); setEventIconPicker(ev ? normalizeEventIcons(ev) : ["dad"]); el("eventNote").value=ev?.note||""; el("modalTitle").textContent=ev?"編輯事件":"新增事件"; el("deleteEventBtn").classList.toggle("hidden",!ev); show("modalBackdrop");
+  el("eventForm").reset(); el("eventId").value=ev?.id||""; el("eventTitle").value=ev?.title||""; el("eventDate").value=ev?.date||dateKey(selectedDate); el("eventTime").value=ev?.time||""; el("eventEndDate").value=ev?.endDate||ev?.date||dateKey(selectedDate); el("eventEndTime").value=ev?.endTime||""; el("eventRecurrence").value=ev?.recurrence||"none"; el("eventRecurrenceUntil").value=ev?.recurrenceUntil||""; el("eventReminder").value=String(ev?.reminderMinutes || 0); setEventIconPicker(ev ? normalizeEventIcons(ev) : ["dad"]); el("eventNote").value=ev?.note||""; el("modalTitle").textContent=ev?"編輯事件":"新增事件"; el("deleteEventBtn").classList.toggle("hidden",!ev); show("modalBackdrop");
 }
 
 async function saveEvent(e){
@@ -665,6 +742,12 @@ async function saveEvent(e){
     alert("同一天的結束時間必須晚於開始時間。");
     return;
   }
+  const recurrence=el("eventRecurrence").value||"none";
+  const recurrenceUntil=el("eventRecurrenceUntil").value;
+  if(recurrence!=="none" && recurrenceUntil && recurrenceUntil<startDate){
+    alert("「重複到」日期不能早於開始日期。");
+    return;
+  }
 
   const data={
     title:el("eventTitle").value.trim(),
@@ -672,6 +755,8 @@ async function saveEvent(e){
     endDate:endDate,
     time:startTime,
     endTime:endTime,
+    recurrence:recurrence,
+    recurrenceUntil:recurrenceUntil,
     eventIcons:getSelectedEventIcons(),
     reminderMinutes:Number(el("eventReminder").value||0),
     note:el("eventNote").value.trim(),
@@ -709,8 +794,8 @@ function bind(){
   el("settingsBtn").onclick=()=>{openSettings();updateNotificationStatus();}; el("closeSettings").onclick=()=>hide("settingsBackdrop"); el("saveSettingsBtn").onclick=async()=>{profile.memberName=el("memberName").value.trim()||user.email.split("@")[0];saveProfile();await saveCloudProfile();hide("settingsBackdrop");renderDayEvents();};
   el("copyCodeBtn").onclick=async()=>{await navigator.clipboard.writeText(profile.calendarCode);alert("共用代碼已複製");}; el("enableNotificationsBtn").onclick=enableNotifications; el("testNotificationBtn").onclick=testNotification; el("inviteBtn").onclick=inviteMember;
   el("logoutBtn").onclick=async()=>{hide("settingsBackdrop");cleanupListeners();await signOut(auth);};
-  el("loginBtn").onclick=async()=>{try{await signInWithEmailAndPassword(auth,normalizeEmail(el("authEmail").value),el("authPassword").value);}catch(e){alert("登入失敗："+e.message);}};
-  el("registerBtn").onclick=async()=>{try{await createUserWithEmailAndPassword(auth,normalizeEmail(el("authEmail").value),el("authPassword").value);}catch(e){alert("建立帳號失敗："+e.message);}};
+  el("loginBtn").onclick=async()=>{try{await signInWithEmailAndPassword(auth,normalizeEmail(el("authEmail").value),el("authPassword").value);}catch(e){console.error(e);alert(authErrorMessage(e));}};
+  el("registerBtn").onclick=async()=>{try{await createUserWithEmailAndPassword(auth,normalizeEmail(el("authEmail").value),el("authPassword").value);}catch(e){console.error(e);alert(authErrorMessage(e));}}; el("forgotPasswordBtn").onclick=forgotPassword;
   el("createCalendarBtn").onclick=createCalendar; el("joinCalendarBtn").onclick=async()=>{profile=profile||{};profile.memberName=el("firstName").value.trim()||user.email.split("@")[0];profile.color=profile.color||COLORS[Math.floor(Math.random()*COLORS.length)];await openCalendar(el("firstCode").value,true);};
   if("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js");
 }

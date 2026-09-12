@@ -79,6 +79,21 @@
         </div>
         <input id="eventIcons" type="hidden" value='["dad"]' />
 
+        <div class="row2">
+          <label>事件週期
+            <select id="eventRecurrence">
+              <option value="none">不重複</option>
+              <option value="daily">每天</option>
+              <option value="weekly">每週</option>
+              <option value="monthly">每月</option>
+              <option value="yearly">每年</option>
+            </select>
+          </label>
+          <label>重複到
+            <input id="eventRecurrenceUntil" type="date" />
+          </label>
+        </div>
+
         <label>提醒
           <select id="eventReminder">
             <option value="0">不提醒</option>
@@ -103,7 +118,7 @@
       <p class="hint">使用 Email 與密碼登入。只有被管理員加入的 Email 才能開啟指定共用行事曆。</p>
       <label>Email<input id="authEmail" type="email" autocomplete="email" placeholder="name@example.com" /></label>
       <label>密碼<input id="authPassword" type="password" autocomplete="current-password" minlength="6" placeholder="至少 6 碼" /></label>
-      <div class="actions"><button id="registerBtn" class="secondary-btn" type="button">建立帳號</button><div class="spacer"></div><button id="loginBtn" class="primary-btn" type="button">登入</button></div>
+      <div class="actions"><button id="registerBtn" class="secondary-btn" type="button">建立帳號</button><button id="forgotPasswordBtn" class="secondary-btn" type="button">忘記密碼</button><div class="spacer"></div><button id="loginBtn" class="primary-btn" type="button">登入</button></div>
     </div>
   </div>
 

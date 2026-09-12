@@ -1,26 +1,21 @@
-行事曆－iPhone 桌面版修正版
+行事曆－iPhone 桌面版 V20 修正版
 
-這版專門修正：
-Safari 打開正常，但「加入主畫面」後無法使用／仍顯示舊版。
+這版修正真正造成主畫面失效的程式錯誤：
+- 移除舊日期跳轉函式殘留
+- 修正月份標題空白
+- 修正月曆內容空白
+- 修正 Firebase 尚未初始化而一直顯示「尚未登入」
+- 保留目前排版
+- 保留月曆式日期跳轉
+- 保留忘記密碼、中文錯誤提示、週期事件等全部功能
 
-處理方式：
-- 重做 Service Worker 更新策略
-- HTML / app.js / style.css 優先讀取最新版
-- 增加版本參數，避免 iPhone PWA 卡住舊快取
-- 清除舊版本 Cache
-- 保留目前正確排版
-- 保留真正的月曆式日期跳轉
-
-更新步驟：
+請這樣更新：
 1. 解壓縮 ZIP
-2. GitHub → shared-calendar → Add file → Upload files
-3. 全部檔案覆蓋後 Commit changes
-4. 等 GitHub Pages 更新約 1～3 分鐘
-5. iPhone Safari 先開網址，確認新版正常
-6. 刪除目前主畫面的「行事曆」
-7. iPhone「設定 → Safari → 進階 → 網站資料」，若看得到你的 GitHub Pages 網站，可刪除該網站資料
-8. 回 Safari 重新開網址
-9. 分享 → 加入主畫面
+2. GitHub repository 全部覆蓋
+3. Commit changes
+4. 等 GitHub Pages 更新 1～3 分鐘
+5. Safari 重新整理確認新版
+6. 刪除目前主畫面的舊行事曆
+7. 從 Safari 再次「加入主畫面」
 
-Firestore rules 不需要修改。
-Firebase 資料不會因為刪除主畫面 App 而消失。
+Firestore rules 不用修改，Firebase 事件資料也不會被刪除。

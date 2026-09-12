@@ -23,10 +23,9 @@
       <div class="calendar-nav">
         <button id="prevMonth" class="nav-btn">‹</button>
         <div>
-          <div class="month-jump-wrap" title="點選可跳到其他日期">
-            <div id="monthTitle" class="month-title"></div>
-            <input id="jumpDateInput" class="jump-date-input" type="date" aria-label="選擇要跳轉的日期" />
-          </div>
+          <button id="monthJumpBtn" class="month-jump-btn" type="button">
+            <span id="monthTitle" class="month-title"></span>
+          </button>
           <button id="todayBtn" class="today-btn">今天</button>
         </div>
         <button id="nextMonth" class="nav-btn">›</button>
@@ -118,7 +117,35 @@
     </div>
   </div>
 
-  <div id="authBackdrop" class="modal-backdrop hidden">
+  
+  <div id="dateJumpBackdrop" class="modal-backdrop hidden">
+    <div class="modal date-jump-modal">
+      <div class="modal-head">
+        <h2>跳到指定日期</h2>
+        <button id="closeDateJump" class="icon-btn" type="button">✕</button>
+      </div>
+
+      <div class="date-jump-selects">
+        <label>年份
+          <select id="jumpYear"></select>
+        </label>
+        <label>月份
+          <select id="jumpMonth"></select>
+        </label>
+        <label>日期
+          <select id="jumpDay"></select>
+        </label>
+      </div>
+
+      <div class="actions">
+        <button id="jumpTodayBtn" class="secondary-btn" type="button">今天</button>
+        <div class="spacer"></div>
+        <button id="confirmDateJump" class="primary-btn" type="button">前往</button>
+      </div>
+    </div>
+  </div>
+
+<div id="authBackdrop" class="modal-backdrop hidden">
     <div class="modal">
       <h2>登入共用行事曆</h2>
       <p class="hint">使用 Email 與密碼登入。只有被管理員加入的 Email 才能開啟指定共用行事曆。</p>

@@ -614,7 +614,7 @@ function recurrenceRRule(ev){
 
 function renderCalendar(){
   const y=currentMonth.getFullYear(),m=currentMonth.getMonth(); el("monthTitle").textContent=`${y} 年 ${m+1} 月`;
-  if(el("jumpDateInput")) el("jumpDateInput").value=dateKey(selectedDate);
+
   const start=new Date(y,m,1-new Date(y,m,1).getDay()); const grid=el("calendarGrid"); grid.innerHTML="";
   for(let i=0;i<42;i++){
     const d=new Date(start); d.setDate(start.getDate()+i); const k=dateKey(d); const day=document.createElement("button");
@@ -788,21 +788,86 @@ function openSettings(){ if(!user){show("authBackdrop");return;} renderSettingsS
 async function inviteMember(){ if(!isAdmin()) return; const email=normalizeEmail(el("inviteEmail").value); if(!email){alert("請輸入 Email");return;} await updateDoc(doc(db,"calendars",profile.calendarCode),{members:arrayUnion(email)}); el("inviteEmail").value=""; }
 async function removeMember(email){ if(!isAdmin()) return; if(confirm(`移除 ${email}？`)) await updateDoc(doc(db,"calendars",profile.calendarCode),{members:arrayRemove(normalizeEmail(email))}); }
 
+
+function daysInMonth(year, month){
+  return new Date(year, month, 0).getDate();
+}
+
+function fillDateJumpDays(){
+  const y=Number(el("jumpYear").value);
+  const m=Number(el("jumpMonth").value);
+  const current=Number(el("jumpDay").value)||1;
+  const max=daysInMonth(y,m);
+  el("jumpDay").innerHTML="";
+  for(let d=1;d<=max;d++){
+    const opt=document.createElement("option");
+    opt.value=String(d);
+    opt.textContent=String(d);
+    el("jumpDay").appendChild(opt);
+  }
+  el("jumpDay").value=String(Math.min(current,max));
+}
+
+function openDateJumpModal(){
+  const nowYear=new Date().getFullYear();
+  const baseYear=selectedDate.getFullYear();
+
+  el("jumpYear").innerHTML="";
+  for(let y=nowYear-20;y<=nowYear+30;y++){
+    const opt=document.createElement("option");
+    opt.value=String(y);
+    opt.textContent=`${y} 年`;
+    el("jumpYear").appendChild(opt);
+  }
+
+  el("jumpMonth").innerHTML="";
+  for(let m=1;m<=12;m++){
+    const opt=document.createElement("option");
+    opt.value=String(m);
+    opt.textContent=`${m} 月`;
+    el("jumpMonth").appendChild(opt);
+  }
+
+  el("jumpYear").value=String(baseYear);
+  el("jumpMonth").value=String(selectedDate.getMonth()+1);
+
+  fillDateJumpDays();
+  el("jumpDay").value=String(selectedDate.getDate());
+
+  show("dateJumpBackdrop");
+}
+
+function goToSelectedJumpDate(){
+  const y=Number(el("jumpYear").value);
+  const m=Number(el("jumpMonth").value);
+  const d=Number(el("jumpDay").value);
+  const target=new Date(y,m-1,d,12,0,0);
+
+  selectedDate=target;
+  currentMonth=new Date(y,m-1,1);
+
+  hide("dateJumpBackdrop");
+  renderCalendar();
+  renderDayEvents();
+  renderUpcomingReminders();
+}
+
 function bind(){
   document.querySelectorAll(".event-icon-option").forEach(btn=>{ btn.onclick=()=>toggleEventIcon(btn.dataset.icon || ""); });
   el("prevMonth").onclick=()=>{currentMonth.setMonth(currentMonth.getMonth()-1);renderCalendar();}; 
   el("nextMonth").onclick=()=>{currentMonth.setMonth(currentMonth.getMonth()+1);renderCalendar();}; 
   el("todayBtn").onclick=()=>{selectedDate=new Date();currentMonth=new Date(selectedDate.getFullYear(),selectedDate.getMonth(),1);renderCalendar();renderDayEvents();};
-  el("jumpDateInput").onchange=()=>{
-    const value=el("jumpDateInput").value;
-    if(!value) return;
-    const d=new Date(`${value}T12:00:00`);
-    if(Number.isNaN(d.getTime())) return;
-    selectedDate=d;
-    currentMonth=new Date(d.getFullYear(),d.getMonth(),1);
-    renderCalendar();
-    renderDayEvents();
-    renderUpcomingReminders();
+  el("monthJumpBtn").onclick=openDateJumpModal;
+  el("closeDateJump").onclick=()=>hide("dateJumpBackdrop");
+  el("jumpYear").onchange=fillDateJumpDays;
+  el("jumpMonth").onchange=fillDateJumpDays;
+  el("confirmDateJump").onclick=goToSelectedJumpDate;
+  el("jumpTodayBtn").onclick=()=>{
+    const now=new Date();
+    el("jumpYear").value=String(now.getFullYear());
+    el("jumpMonth").value=String(now.getMonth()+1);
+    fillDateJumpDays();
+    el("jumpDay").value=String(now.getDate());
   };
   el("addEventBtn").onclick=()=>openEventModal(); el("closeModal").onclick=()=>hide("modalBackdrop"); el("cancelEventBtn").onclick=()=>hide("modalBackdrop"); el("eventForm").onsubmit=saveEvent; el("deleteEventBtn").onclick=deleteCurrentEvent;
   el("settingsBtn").onclick=()=>{openSettings();updateNotificationStatus();}; el("closeSettings").onclick=()=>hide("settingsBackdrop"); el("saveSettingsBtn").onclick=async()=>{profile.memberName=el("memberName").value.trim()||user.email.split("@")[0];saveProfile();await saveCloudProfile();hide("settingsBackdrop");renderDayEvents();};

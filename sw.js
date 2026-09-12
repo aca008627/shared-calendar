@@ -1,11 +1,11 @@
-const CACHE = "shared-calendar-v20-runtime-fix";
+const CACHE = "shared-calendar-v21-syntax-fixed";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./style.css?v=20260912-v20",
-  "./app.js?v=20260912-v20",
-  "./manifest.webmanifest?v=20260912-v20",
-  "./icons/icon-180.png?v=20260912-v20",
+  "./style.css?v=20260912-v21",
+  "./app.js?v=20260912-v21",
+  "./manifest.webmanifest?v=20260912-v21",
+  "./icons/icon-180.png?v=20260912-v21",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
   "./icons/characters/dad.png",

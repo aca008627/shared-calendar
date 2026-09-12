@@ -1,21 +1,23 @@
-行事曆－iPhone 桌面版 V20 修正版
+行事曆－V21 語法修正版
 
-這版修正真正造成主畫面失效的程式錯誤：
-- 移除舊日期跳轉函式殘留
-- 修正月份標題空白
-- 修正月曆內容空白
-- 修正 Firebase 尚未初始化而一直顯示「尚未登入」
+這版修正已確認的真正錯誤：
+- app.js 的 bind() 中多了一個 `};`
+- 造成 JavaScript SyntaxError
+- 因此 Safari 與加入主畫面都會顯示月份空白、日期空白、尚未登入
+
+本版已經：
+- 修掉語法錯誤
+- 用 Node.js 實際做 JavaScript 語法檢查，確認通過
 - 保留目前排版
-- 保留月曆式日期跳轉
-- 保留忘記密碼、中文錯誤提示、週期事件等全部功能
+- 保留完整月曆式日期跳轉
+- 保留忘記密碼、中文錯誤提示、週期事件、Firebase 同步等功能
 
-請這樣更新：
-1. 解壓縮 ZIP
+更新方式：
+1. 解壓 ZIP
 2. GitHub repository 全部覆蓋
 3. Commit changes
 4. 等 GitHub Pages 更新 1～3 分鐘
-5. Safari 重新整理確認新版
-6. 刪除目前主畫面的舊行事曆
-7. 從 Safari 再次「加入主畫面」
+5. Safari 重新整理測試
+6. 確認 Safari 正常後，再刪除舊主畫面 App 並重新加入
 
-Firestore rules 不用修改，Firebase 事件資料也不會被刪除。
+Firestore rules 不需要修改。

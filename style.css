@@ -273,25 +273,75 @@ select:focus{border-color:#90b0ff;box-shadow:0 0 0 3px rgba(47,111,237,.1)}
 
 
 
-/* ===== 日期快速跳轉（iPhone 穩定版） ===== */
+
+
+/* ===== 截圖同款月份標題排版 + 可點擊日期跳轉 ===== */
+.calendar-nav{
+  display:grid;
+  grid-template-columns:56px minmax(0,1fr) 56px;
+  align-items:start;
+  text-align:center;
+  width:100%;
+  gap:8px;
+}
+
+.calendar-title-center{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:flex-start;
+  min-width:0;
+  padding-top:1px;
+}
+
 .month-jump-btn{
   border:0;
   background:transparent;
-  padding:2px 10px 0;
+  padding:0 12px;
   margin:0;
   border-radius:12px;
   color:var(--text);
   cursor:pointer;
+  min-height:36px;
+  max-width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
   -webkit-tap-highlight-color:rgba(47,111,237,.12);
 }
+
+.month-jump-btn .month-title{
+  font-weight:800;
+  font-size:20px;
+  line-height:1.25;
+  text-align:center;
+  white-space:nowrap;
+  letter-spacing:.2px;
+}
+
 .month-jump-btn:active{
   background:#eef4ff;
   transform:scale(.98);
 }
-.month-jump-btn .month-title{
-  pointer-events:none;
+
+.today-btn{
+  display:block;
+  margin:3px auto 0;
+  border:0;
+  background:transparent;
+  color:var(--accent);
+  font-size:14px;
+  line-height:1.2;
+  padding:2px 10px 5px;
+  text-align:center;
 }
 
+.nav-btn{
+  align-self:start;
+  margin-top:0;
+}
+
+/* 自製日期跳轉視窗維持上一版 */
 .date-jump-selects{
   display:grid;
   grid-template-columns:1.15fr 1fr 1fr;
@@ -305,62 +355,17 @@ select:focus{border-color:#90b0ff;box-shadow:0 0 0 3px rgba(47,111,237,.1)}
   font-size:16px;
   min-height:46px;
 }
+
 @media(max-width:420px){
+  .calendar-nav{
+    grid-template-columns:52px minmax(0,1fr) 52px;
+    gap:4px;
+  }
+  .month-jump-btn .month-title{
+    font-size:19px;
+  }
   .date-jump-selects{
     grid-template-columns:1fr;
     gap:2px;
   }
-}
-
-
-/* ===== 日期標題恢復原版排版 ===== */
-.calendar-nav{
-  display:grid;
-  grid-template-columns:48px 1fr 48px;
-  align-items:center;
-  text-align:center;
-}
-
-.calendar-center{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  min-width:0;
-}
-
-.month-jump-btn{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  border:0;
-  background:transparent;
-  padding:0 10px;
-  margin:0;
-  border-radius:12px;
-  color:var(--text);
-  cursor:pointer;
-  min-height:32px;
-  max-width:100%;
-}
-
-.month-jump-btn .month-title{
-  font-weight:750;
-  font-size:19px;
-  line-height:1.2;
-  text-align:center;
-}
-
-.today-btn{
-  margin-top:4px;
-  border:0;
-  background:transparent;
-  color:var(--accent);
-  font-size:13px;
-  line-height:1.2;
-  padding:2px 8px;
-}
-
-.month-jump-btn:active{
-  background:#eef4ff;
 }

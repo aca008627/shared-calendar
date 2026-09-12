@@ -21,14 +21,16 @@
 
     <section class="calendar-card">
       <div class="calendar-nav">
-        <button id="prevMonth" class="nav-btn">‹</button>
-        <div class="calendar-center">
-          <button id="monthJumpBtn" class="month-jump-btn" type="button">
+        <button id="prevMonth" class="nav-btn" type="button">‹</button>
+
+        <div class="calendar-title-center">
+          <button id="monthJumpBtn" class="month-jump-btn" type="button" aria-label="選擇日期">
             <span id="monthTitle" class="month-title"></span>
           </button>
           <button id="todayBtn" class="today-btn" type="button">今天</button>
         </div>
-        <button id="nextMonth" class="nav-btn">›</button>
+
+        <button id="nextMonth" class="nav-btn" type="button">›</button>
       </div>
       <div class="weekdays"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>
       <div id="calendarGrid" class="calendar-grid"></div>

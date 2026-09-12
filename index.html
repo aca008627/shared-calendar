@@ -22,7 +22,13 @@
     <section class="calendar-card">
       <div class="calendar-nav">
         <button id="prevMonth" class="nav-btn">‹</button>
-        <div><div id="monthTitle" class="month-title"></div><button id="todayBtn" class="today-btn">今天</button></div>
+        <div>
+          <div class="month-jump-wrap" title="點選可跳到其他日期">
+            <div id="monthTitle" class="month-title"></div>
+            <input id="jumpDateInput" class="jump-date-input" type="date" aria-label="選擇要跳轉的日期" />
+          </div>
+          <button id="todayBtn" class="today-btn">今天</button>
+        </div>
         <button id="nextMonth" class="nav-btn">›</button>
       </div>
       <div class="weekdays"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>

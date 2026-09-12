@@ -614,6 +614,7 @@ function recurrenceRRule(ev){
 
 function renderCalendar(){
   const y=currentMonth.getFullYear(),m=currentMonth.getMonth(); el("monthTitle").textContent=`${y} 年 ${m+1} 月`;
+  if(el("jumpDateInput")) el("jumpDateInput").value=dateKey(selectedDate);
   const start=new Date(y,m,1-new Date(y,m,1).getDay()); const grid=el("calendarGrid"); grid.innerHTML="";
   for(let i=0;i<42;i++){
     const d=new Date(start); d.setDate(start.getDate()+i); const k=dateKey(d); const day=document.createElement("button");
@@ -789,7 +790,20 @@ async function removeMember(email){ if(!isAdmin()) return; if(confirm(`移除 ${
 
 function bind(){
   document.querySelectorAll(".event-icon-option").forEach(btn=>{ btn.onclick=()=>toggleEventIcon(btn.dataset.icon || ""); });
-  el("prevMonth").onclick=()=>{currentMonth.setMonth(currentMonth.getMonth()-1);renderCalendar();}; el("nextMonth").onclick=()=>{currentMonth.setMonth(currentMonth.getMonth()+1);renderCalendar();}; el("todayBtn").onclick=()=>{selectedDate=new Date();currentMonth=new Date(selectedDate.getFullYear(),selectedDate.getMonth(),1);renderCalendar();renderDayEvents();};
+  el("prevMonth").onclick=()=>{currentMonth.setMonth(currentMonth.getMonth()-1);renderCalendar();}; 
+  el("nextMonth").onclick=()=>{currentMonth.setMonth(currentMonth.getMonth()+1);renderCalendar();}; 
+  el("todayBtn").onclick=()=>{selectedDate=new Date();currentMonth=new Date(selectedDate.getFullYear(),selectedDate.getMonth(),1);renderCalendar();renderDayEvents();};
+  el("jumpDateInput").onchange=()=>{
+    const value=el("jumpDateInput").value;
+    if(!value) return;
+    const d=new Date(`${value}T12:00:00`);
+    if(Number.isNaN(d.getTime())) return;
+    selectedDate=d;
+    currentMonth=new Date(d.getFullYear(),d.getMonth(),1);
+    renderCalendar();
+    renderDayEvents();
+    renderUpcomingReminders();
+  };
   el("addEventBtn").onclick=()=>openEventModal(); el("closeModal").onclick=()=>hide("modalBackdrop"); el("cancelEventBtn").onclick=()=>hide("modalBackdrop"); el("eventForm").onsubmit=saveEvent; el("deleteEventBtn").onclick=deleteCurrentEvent;
   el("settingsBtn").onclick=()=>{openSettings();updateNotificationStatus();}; el("closeSettings").onclick=()=>hide("settingsBackdrop"); el("saveSettingsBtn").onclick=async()=>{profile.memberName=el("memberName").value.trim()||user.email.split("@")[0];saveProfile();await saveCloudProfile();hide("settingsBackdrop");renderDayEvents();};
   el("copyCodeBtn").onclick=async()=>{await navigator.clipboard.writeText(profile.calendarCode);alert("共用代碼已複製");}; el("enableNotificationsBtn").onclick=enableNotifications; el("testNotificationBtn").onclick=testNotification; el("inviteBtn").onclick=inviteMember;

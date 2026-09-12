@@ -11,8 +11,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="行事曆" />
   <link rel="apple-touch-icon" href="./icons/icon-180.png?v=20260912-v20" />
-  <link rel="manifest" href="./manifest.webmanifest?v=20260912-v21" />
-  <link rel="stylesheet" href="./style.css?v=20260912-v21" />
+  <link rel="manifest" href="./manifest.webmanifest?v=20260912-v23" />
+  <link rel="stylesheet" href="./style.css?v=20260912-v23" />
   <title>行事曆</title>
 </head>
 <body>
@@ -125,34 +125,21 @@
 
 
   <div id="dateJumpBackdrop" class="modal-backdrop hidden">
-    <div class="modal date-jump-calendar-modal">
+    <div class="modal year-overview-modal">
       <div class="modal-head">
         <h2>選擇日期</h2>
         <button id="closeDateJump" class="icon-btn" type="button">✕</button>
       </div>
 
-      <div class="jump-calendar-nav">
-        <button id="jumpPrevMonth" class="jump-nav-btn" type="button" aria-label="上個月">‹</button>
-        <button id="jumpMonthTitle" class="jump-month-title" type="button"></button>
-        <button id="jumpNextMonth" class="jump-nav-btn" type="button" aria-label="下個月">›</button>
+      <div class="year-overview-head">
+        <button id="jumpPrevYear" class="jump-year-nav-btn" type="button" aria-label="上一年">‹</button>
+        <div id="jumpYearTitle" class="jump-year-title"></div>
+        <button id="jumpNextYear" class="jump-year-nav-btn" type="button" aria-label="下一年">›</button>
       </div>
 
-      <div class="jump-weekdays">
-        <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
-      </div>
+      <div id="jumpYearGrid" class="jump-year-grid"></div>
 
-      <div id="jumpCalendarGrid" class="jump-calendar-grid"></div>
-
-      <div id="jumpYearMonthPanel" class="jump-year-month-panel hidden">
-        <div class="jump-year-controls">
-          <button id="jumpPrevYear" class="secondary-btn" type="button">‹</button>
-          <select id="jumpYearSelect" aria-label="選擇年份"></select>
-          <button id="jumpNextYear" class="secondary-btn" type="button">›</button>
-        </div>
-        <div id="jumpMonthButtons" class="jump-month-buttons"></div>
-      </div>
-
-      <div class="actions">
+      <div class="actions year-overview-actions">
         <button id="jumpTodayBtn" class="secondary-btn" type="button">今天</button>
         <div class="spacer"></div>
         <button id="cancelDateJump" class="secondary-btn" type="button">取消</button>
@@ -206,6 +193,6 @@
     </div>
   </div>
 
-  <script type="module" src="./app.js?v=20260912-v21"></script>
+  <script type="module" src="./app.js?v=20260912-v23"></script>
 </body>
 </html>

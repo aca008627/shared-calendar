@@ -24,7 +24,7 @@ const firebaseConfig = {
   appId: "1:221775752292:web:dae48c0ed86fa660230371"
 };
 
-const BUILD_VERSION = "20260912-v21";
+const BUILD_VERSION = "20260912-v23";
 const COLORS = ["#2f6fed","#e74c3c","#20a464","#9b59b6","#f39c12","#00a6b2","#e84393","#6c5ce7"];
 const pad = n => String(n).padStart(2,"0");
 const dateKey = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -791,7 +791,8 @@ async function removeMember(email){ if(!isAdmin()) return; if(confirm(`移除 ${
 
 
 
-let jumpViewDate = new Date();
+
+let jumpYear = new Date().getFullYear();
 
 function sameCalendarDate(a,b){
   return a.getFullYear()===b.getFullYear()
@@ -799,64 +800,54 @@ function sameCalendarDate(a,b){
     && a.getDate()===b.getDate();
 }
 
-function populateJumpYears(){
-  const sel=el("jumpYearSelect");
-  const base=jumpViewDate.getFullYear();
-  sel.innerHTML="";
-  for(let y=base-50;y<=base+50;y++){
-    const opt=document.createElement("option");
-    opt.value=String(y);
-    opt.textContent=`${y} 年`;
-    sel.appendChild(opt);
+function createMiniMonth(year, monthIndex){
+  const section=document.createElement("section");
+  section.className="mini-month";
+
+  const title=document.createElement("div");
+  title.className="mini-month-title";
+  title.textContent=`${monthIndex+1}月`;
+  if(year===selectedDate.getFullYear() && monthIndex===selectedDate.getMonth()){
+    title.classList.add("active");
   }
-  sel.value=String(base);
-}
+  section.appendChild(title);
 
-function renderJumpMonthButtons(){
-  const wrap=el("jumpMonthButtons");
-  wrap.innerHTML="";
-  for(let m=0;m<12;m++){
-    const b=document.createElement("button");
-    b.type="button";
-    b.className="jump-month-option";
-    b.textContent=`${m+1} 月`;
-    if(m===jumpViewDate.getMonth()) b.classList.add("active");
-    b.onclick=()=>{
-      jumpViewDate=new Date(jumpViewDate.getFullYear(),m,1);
-      el("jumpYearMonthPanel").classList.add("hidden");
-      renderJumpCalendar();
-    };
-    wrap.appendChild(b);
-  }
-}
+  const weekdays=document.createElement("div");
+  weekdays.className="mini-weekdays";
+  ["日","一","二","三","四","五","六"].forEach(t=>{
+    const s=document.createElement("span");
+    s.textContent=t;
+    weekdays.appendChild(s);
+  });
+  section.appendChild(weekdays);
 
-function renderJumpCalendar(){
-  const y=jumpViewDate.getFullYear();
-  const m=jumpViewDate.getMonth();
+  const grid=document.createElement("div");
+  grid.className="mini-month-grid";
 
-  const grid=el("jumpCalendarGrid");
-  grid.innerHTML="";
-
-  const firstDay=new Date(y,m,1);
-  const gridStart=new Date(y,m,1-firstDay.getDay());
+  const first=new Date(year,monthIndex,1);
+  const days=new Date(year,monthIndex+1,0).getDate();
+  const offset=first.getDay();
   const today=new Date();
 
-  for(let i=0;i<42;i++){
-    const d=new Date(gridStart);
-    d.setDate(gridStart.getDate()+i);
+  for(let i=0;i<offset;i++){
+    const blank=document.createElement("span");
+    blank.className="mini-day blank";
+    grid.appendChild(blank);
+  }
 
+  for(let day=1;day<=days;day++){
+    const d=new Date(year,monthIndex,day,12,0,0);
     const btn=document.createElement("button");
     btn.type="button";
-    btn.className="jump-calendar-day";
+    btn.className="mini-day";
+    btn.textContent=String(day);
 
-    if(d.getMonth()!==m) btn.classList.add("other");
     if(sameCalendarDate(d,today)) btn.classList.add("today");
     if(sameCalendarDate(d,selectedDate)) btn.classList.add("selected");
 
-    btn.innerHTML=`<span>${d.getDate()}</span>`;
     btn.onclick=()=>{
-      selectedDate=new Date(d.getFullYear(),d.getMonth(),d.getDate(),12,0,0);
-      currentMonth=new Date(d.getFullYear(),d.getMonth(),1);
+      selectedDate=d;
+      currentMonth=new Date(year,monthIndex,1);
       hide("dateJumpBackdrop");
       renderCalendar();
       renderDayEvents();
@@ -866,56 +857,56 @@ function renderJumpCalendar(){
     grid.appendChild(btn);
   }
 
-  populateJumpYears();
-  renderJumpMonthButtons();
+  section.appendChild(grid);
+  return section;
+}
+
+function renderYearOverview(){
+  el("jumpYearTitle").textContent=`${jumpYear}年`;
+  const wrap=el("jumpYearGrid");
+  wrap.innerHTML="";
+  for(let m=0;m<12;m++){
+    wrap.appendChild(createMiniMonth(jumpYear,m));
+  }
 }
 
 function openDateJumpModal(){
-  jumpViewDate=new Date(selectedDate.getFullYear(),selectedDate.getMonth(),1);
-  el("jumpYearMonthPanel").classList.add("hidden");
-  renderJumpCalendar();
+  jumpYear=selectedDate.getFullYear();
+  renderYearOverview();
   show("dateJumpBackdrop");
 }
 
 function bind(){
-  document.querySelectorAll(".event-icon-option").forEach(btn=>{ btn.onclick=()=>toggleEventIcon(btn.dataset.icon || ""); });
-  el("prevMonth").onclick=()=>{currentMonth.setMonth(currentMonth.getMonth()-1);renderCalendar();}; 
-  el("nextMonth").onclick=()=>{currentMonth.setMonth(currentMonth.getMonth()+1);renderCalendar();}; 
-  el("todayBtn").onclick=()=>{selectedDate=new Date();currentMonth=new Date(selectedDate.getFullYear(),selectedDate.getMonth(),1);renderCalendar();renderDayEvents();};
+  document.querySelectorAll(".event-icon-option").forEach(btn=>{
+    btn.onclick=()=>toggleEventIcon(btn.dataset.icon || "");
+  });
+
+  el("prevMonth").onclick=()=>{
+    currentMonth.setMonth(currentMonth.getMonth()-1);
+    renderCalendar();
+  };
+  el("nextMonth").onclick=()=>{
+    currentMonth.setMonth(currentMonth.getMonth()+1);
+    renderCalendar();
+  };
+  el("todayBtn").onclick=()=>{
+    selectedDate=new Date();
+    currentMonth=new Date(selectedDate.getFullYear(),selectedDate.getMonth(),1);
+    renderCalendar();
+    renderDayEvents();
+  };
+
   el("monthJumpBtn").onclick=openDateJumpModal;
   el("closeDateJump").onclick=()=>hide("dateJumpBackdrop");
   el("cancelDateJump").onclick=()=>hide("dateJumpBackdrop");
-
-  el("jumpPrevMonth").onclick=()=>{
-    jumpViewDate=new Date(jumpViewDate.getFullYear(),jumpViewDate.getMonth()-1,1);
-    renderJumpCalendar();
-  };
-
-  el("jumpNextMonth").onclick=()=>{
-    jumpViewDate=new Date(jumpViewDate.getFullYear(),jumpViewDate.getMonth()+1,1);
-    renderJumpCalendar();
-  };
-
-  el("jumpMonthTitle").onclick=()=>{
-    el("jumpYearMonthPanel").classList.toggle("hidden");
-  };
-
   el("jumpPrevYear").onclick=()=>{
-    jumpViewDate=new Date(jumpViewDate.getFullYear()-1,jumpViewDate.getMonth(),1);
-    renderJumpCalendar();
+    jumpYear--;
+    renderYearOverview();
   };
-
   el("jumpNextYear").onclick=()=>{
-    jumpViewDate=new Date(jumpViewDate.getFullYear()+1,jumpViewDate.getMonth(),1);
-    renderJumpCalendar();
+    jumpYear++;
+    renderYearOverview();
   };
-
-  el("jumpYearSelect").onchange=()=>{
-    const y=Number(el("jumpYearSelect").value);
-    jumpViewDate=new Date(y,jumpViewDate.getMonth(),1);
-    renderJumpCalendar();
-  };
-
   el("jumpTodayBtn").onclick=()=>{
     const now=new Date();
     selectedDate=new Date(now.getFullYear(),now.getMonth(),now.getDate(),12,0,0);
@@ -925,14 +916,74 @@ function bind(){
     renderDayEvents();
     renderUpcomingReminders();
   };
-  el("addEventBtn").onclick=()=>openEventModal(); el("closeModal").onclick=()=>hide("modalBackdrop"); el("cancelEventBtn").onclick=()=>hide("modalBackdrop"); el("eventForm").onsubmit=saveEvent; el("deleteEventBtn").onclick=deleteCurrentEvent;
-  el("settingsBtn").onclick=()=>{openSettings();updateNotificationStatus();}; el("closeSettings").onclick=()=>hide("settingsBackdrop"); el("saveSettingsBtn").onclick=async()=>{profile.memberName=el("memberName").value.trim()||user.email.split("@")[0];saveProfile();await saveCloudProfile();hide("settingsBackdrop");renderDayEvents();};
-  el("copyCodeBtn").onclick=async()=>{await navigator.clipboard.writeText(profile.calendarCode);alert("共用代碼已複製");}; el("enableNotificationsBtn").onclick=enableNotifications; el("testNotificationBtn").onclick=testNotification; el("inviteBtn").onclick=inviteMember;
-  el("logoutBtn").onclick=async()=>{hide("settingsBackdrop");cleanupListeners();await signOut(auth);};
-  el("loginBtn").onclick=async()=>{try{await signInWithEmailAndPassword(auth,normalizeEmail(el("authEmail").value),el("authPassword").value);}catch(e){console.error(e);alert(authErrorMessage(e));}};
-  el("registerBtn").onclick=async()=>{try{await createUserWithEmailAndPassword(auth,normalizeEmail(el("authEmail").value),el("authPassword").value);}catch(e){console.error(e);alert(authErrorMessage(e));}}; el("forgotPasswordBtn").onclick=forgotPassword;
-  el("createCalendarBtn").onclick=createCalendar; el("joinCalendarBtn").onclick=async()=>{profile=profile||{};profile.memberName=el("firstName").value.trim()||user.email.split("@")[0];profile.color=profile.color||COLORS[Math.floor(Math.random()*COLORS.length)];await openCalendar(el("firstCode").value,true);};
-  if("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js");
-}
 
+  el("addEventBtn").onclick=()=>openEventModal();
+  el("closeModal").onclick=()=>hide("modalBackdrop");
+  el("cancelEventBtn").onclick=()=>hide("modalBackdrop");
+  el("eventForm").onsubmit=saveEvent;
+  el("deleteEventBtn").onclick=deleteCurrentEvent;
+
+  el("settingsBtn").onclick=()=>{
+    openSettings();
+    updateNotificationStatus();
+  };
+  el("closeSettings").onclick=()=>hide("settingsBackdrop");
+  el("saveSettingsBtn").onclick=async()=>{
+    profile.memberName=el("memberName").value.trim()||user.email.split("@")[0];
+    saveProfile();
+    await saveCloudProfile();
+    hide("settingsBackdrop");
+    renderDayEvents();
+  };
+  el("copyCodeBtn").onclick=async()=>{
+    await navigator.clipboard.writeText(profile.calendarCode);
+    alert("共用代碼已複製");
+  };
+  el("enableNotificationsBtn").onclick=enableNotifications;
+  el("testNotificationBtn").onclick=testNotification;
+  el("inviteBtn").onclick=inviteMember;
+
+  el("logoutBtn").onclick=async()=>{
+    hide("settingsBackdrop");
+    cleanupListeners();
+    await signOut(auth);
+  };
+  el("loginBtn").onclick=async()=>{
+    try{
+      await signInWithEmailAndPassword(
+        auth,
+        normalizeEmail(el("authEmail").value),
+        el("authPassword").value
+      );
+    }catch(e){
+      console.error(e);
+      alert(authErrorMessage(e));
+    }
+  };
+  el("registerBtn").onclick=async()=>{
+    try{
+      await createUserWithEmailAndPassword(
+        auth,
+        normalizeEmail(el("authEmail").value),
+        el("authPassword").value
+      );
+    }catch(e){
+      console.error(e);
+      alert(authErrorMessage(e));
+    }
+  };
+  el("forgotPasswordBtn").onclick=forgotPassword;
+
+  el("createCalendarBtn").onclick=createCalendar;
+  el("joinCalendarBtn").onclick=async()=>{
+    profile=profile||{};
+    profile.memberName=el("firstName").value.trim()||user.email.split("@")[0];
+    profile.color=profile.color||COLORS[Math.floor(Math.random()*COLORS.length)];
+    await openCalendar(el("firstCode").value,true);
+  };
+
+  if("serviceWorker" in navigator){
+    navigator.serviceWorker.register("./sw.js");
+  }
+}
 bind(); renderCalendar(); renderDayEvents(); renderUpcomingReminders(); updateNotificationStatus(); initFirebase();

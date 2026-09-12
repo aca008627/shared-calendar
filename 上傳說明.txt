@@ -1,23 +1,23 @@
-行事曆－V21 語法修正版
+行事曆－V23 全年總覽跳轉版
 
-這版修正已確認的真正錯誤：
-- app.js 的 bind() 中多了一個 `};`
-- 造成 JavaScript SyntaxError
-- 因此 Safari 與加入主畫面都會顯示月份空白、日期空白、尚未登入
+日期跳轉改成你指定的 iPhone 年度總覽風格：
+- 上方顯示年份
+- 左右切換上一年／下一年
+- 1～12 月全部展開
+- 每個月份為小月曆
+- 直接點日期即可跳轉
+- 今天與選取日期高亮
+- 底部保留「今天」
 
-本版已經：
-- 修掉語法錯誤
-- 用 Node.js 實際做 JavaScript 語法檢查，確認通過
-- 保留目前排版
-- 保留完整月曆式日期跳轉
-- 保留忘記密碼、中文錯誤提示、週期事件、Firebase 同步等功能
+原本所有功能都保留。
+本版 app.js 已通過 JavaScript 語法檢查。
 
-更新方式：
+更新：
 1. 解壓 ZIP
 2. GitHub repository 全部覆蓋
 3. Commit changes
-4. 等 GitHub Pages 更新 1～3 分鐘
-5. Safari 重新整理測試
-6. 確認 Safari 正常後，再刪除舊主畫面 App 並重新加入
+4. 等 GitHub Pages 更新
+5. Safari 重新整理確認
+6. 再測試主畫面 App
 
 Firestore rules 不需要修改。

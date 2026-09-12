@@ -1,18 +1,77 @@
+const CACHE = "shared-calendar-v19-iphone-standalone";
+const APP_SHELL = [
+  "./",
+  "./index.html",
+  "./style.css?v=20260912-v19",
+  "./app.js?v=20260912-v19",
+  "./manifest.webmanifest?v=20260912-v19",
+  "./icons/icon-180.png?v=20260912-v19",
+  "./icons/icon-192.png",
+  "./icons/icon-512.png",
+  "./icons/characters/dad.png",
+  "./icons/characters/mom.png",
+  "./icons/characters/boy.png"
+];
 
-const CACHE = "shared-calendar-v18-hard-refresh-calendar-jump";
-const ASSETS = ["./","./index.html","./style.css","./app.js","./manifest.webmanifest","./icons/icon-180.png","./icons/icon-192.png","./icons/icon-512.png","./icons/characters/dad.png","./icons/characters/mom.png","./icons/characters/boy.png"];
-self.addEventListener("install", e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
+self.addEventListener("install", event => {
   self.skipWaiting();
-});
-self.addEventListener("activate", e => {
-  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k!==CACHE).map(k => caches.delete(k)))));
-  self.clients.claim();
-});
-self.addEventListener("fetch", e => {
-  e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
+  event.waitUntil(
+    caches.open(CACHE).then(cache => cache.addAll(APP_SHELL)).catch(err => {
+      console.warn("PWA precache failed", err);
+    })
+  );
 });
 
+self.addEventListener("activate", event => {
+  event.waitUntil(
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key))))
+      .then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener("fetch", event => {
+  const req = event.request;
+  if (req.method !== "GET") return;
+
+  const url = new URL(req.url);
+  if (url.origin !== self.location.origin) return;
+
+  const isNavigation = req.mode === "navigate";
+  const isFreshAsset =
+    url.pathname.endsWith(".html") ||
+    url.pathname.endsWith(".js") ||
+    url.pathname.endsWith(".css") ||
+    url.pathname.endsWith(".webmanifest");
+
+  if (isNavigation || isFreshAsset) {
+    event.respondWith(
+      fetch(req, { cache: "no-store" })
+        .then(response => {
+          if (response && response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE).then(cache => cache.put(req, copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match(req).then(cached => cached || caches.match("./index.html")))
+    );
+    return;
+  }
+
+  event.respondWith(
+    caches.match(req).then(cached => {
+      if (cached) return cached;
+      return fetch(req).then(response => {
+        if (response && response.ok) {
+          const copy = response.clone();
+          caches.open(CACHE).then(cache => cache.put(req, copy));
+        }
+        return response;
+      });
+    })
+  );
+});
 
 self.addEventListener("notificationclick", event => {
   event.notification.close();

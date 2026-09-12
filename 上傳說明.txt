@@ -1,21 +1,26 @@
-行事曆－截圖排版修正版
+行事曆－iPhone 桌面版修正版
 
-這版依照你提供的畫面調整：
-- 左箭頭在左側
-- 右箭頭在右側
-- 年份＋月份大字置中
-- 「今天」緊接在月份標題正下方
-- 點年份＋月份，仍然使用上一版的「年份／月份／日期」自製選擇視窗
-- 可跨月、跨年跳轉
+這版專門修正：
+Safari 打開正常，但「加入主畫面」後無法使用／仍顯示舊版。
 
-原有功能全部保留。
+處理方式：
+- 重做 Service Worker 更新策略
+- HTML / app.js / style.css 優先讀取最新版
+- 增加版本參數，避免 iPhone PWA 卡住舊快取
+- 清除舊版本 Cache
+- 保留目前正確排版
+- 保留真正的月曆式日期跳轉
 
-更新：
-1. 解壓 ZIP
+更新步驟：
+1. 解壓縮 ZIP
 2. GitHub → shared-calendar → Add file → Upload files
-3. 全部覆蓋
-4. Commit changes
-5. 等 GitHub Pages 更新
-6. iPhone 若仍看到舊版，關閉重開；必要時移除主畫面後重新加入
+3. 全部檔案覆蓋後 Commit changes
+4. 等 GitHub Pages 更新約 1～3 分鐘
+5. iPhone Safari 先開網址，確認新版正常
+6. 刪除目前主畫面的「行事曆」
+7. iPhone「設定 → Safari → 進階 → 網站資料」，若看得到你的 GitHub Pages 網站，可刪除該網站資料
+8. 回 Safari 重新開網址
+9. 分享 → 加入主畫面
 
-Firestore rules 不需修改。
+Firestore rules 不需要修改。
+Firebase 資料不會因為刪除主畫面 App 而消失。

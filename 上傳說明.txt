@@ -1,18 +1,17 @@
-行事曆－日期跳轉修正版
+行事曆－日期跳轉原版排版
 
-修正：
-- iPhone 點月份標題沒反應
-- 改用真正按鈕，不再依賴透明 date input
-- 點「YYYY 年 M 月」會跳出年份／月份／日期選擇器
-- 支援跨月、跨年
-
-原本所有功能保留。
+調整：
+- 年份月份置中
+- 「今天」放在日期下方
+- 外觀恢復原本排版
+- 點年份月份仍可跳到任意日期
+- 「今天」功能仍保留
 
 更新：
 1. 解壓 ZIP
 2. GitHub → shared-calendar → Add file → Upload files
 3. 全部覆蓋後 Commit
-4. 等 GitHub Pages 更新
-5. iPhone 建議關掉 App 重開；若仍載入舊快取，再移除主畫面後重新加入
+4. 等待 GitHub Pages 更新
+5. iPhone 若仍顯示舊版，關閉重開；必要時重新加入主畫面
 
 Firestore rules 不需修改。

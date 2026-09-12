@@ -311,3 +311,56 @@ select:focus{border-color:#90b0ff;box-shadow:0 0 0 3px rgba(47,111,237,.1)}
     gap:2px;
   }
 }
+
+
+/* ===== 日期標題恢復原版排版 ===== */
+.calendar-nav{
+  display:grid;
+  grid-template-columns:48px 1fr 48px;
+  align-items:center;
+  text-align:center;
+}
+
+.calendar-center{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  min-width:0;
+}
+
+.month-jump-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border:0;
+  background:transparent;
+  padding:0 10px;
+  margin:0;
+  border-radius:12px;
+  color:var(--text);
+  cursor:pointer;
+  min-height:32px;
+  max-width:100%;
+}
+
+.month-jump-btn .month-title{
+  font-weight:750;
+  font-size:19px;
+  line-height:1.2;
+  text-align:center;
+}
+
+.today-btn{
+  margin-top:4px;
+  border:0;
+  background:transparent;
+  color:var(--accent);
+  font-size:13px;
+  line-height:1.2;
+  padding:2px 8px;
+}
+
+.month-jump-btn:active{
+  background:#eef4ff;
+}

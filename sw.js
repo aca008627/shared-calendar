@@ -1,5 +1,5 @@
 
-const CACHE = "shared-calendar-v17-calendar-datejump";
+const CACHE = "shared-calendar-v18-hard-refresh-calendar-jump";
 const ASSETS = ["./","./index.html","./style.css","./app.js","./manifest.webmanifest","./icons/icon-180.png","./icons/icon-192.png","./icons/icon-512.png","./icons/characters/dad.png","./icons/characters/mom.png","./icons/characters/boy.png"];
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));

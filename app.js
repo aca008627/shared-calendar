@@ -792,71 +792,67 @@ async function removeMember(email){ if(!isAdmin()) return; if(confirm(`移除 ${
 
 let jumpViewDate = new Date();
 
-function jumpDateSameDay(a,b){
+function sameCalendarDate(a,b){
   return a.getFullYear()===b.getFullYear()
     && a.getMonth()===b.getMonth()
     && a.getDate()===b.getDate();
 }
 
-function renderJumpMonthPicker(){
-  const picker=el("jumpMonthPicker");
-  if(!picker) return;
-  picker.innerHTML="";
-  for(let m=0;m<12;m++){
-    const btn=document.createElement("button");
-    btn.type="button";
-    btn.className="jump-month-option";
-    btn.textContent=`${m+1} 月`;
-    if(m===jumpViewDate.getMonth()) btn.classList.add("active");
-    btn.onclick=()=>{
-      jumpViewDate=new Date(jumpViewDate.getFullYear(),m,1);
-      el("jumpYearPanel").classList.add("hidden");
-      renderJumpCalendar();
-    };
-    picker.appendChild(btn);
-  }
-}
-
-function fillJumpYears(){
-  const select=el("jumpYearSelect");
-  if(!select) return;
-  const center=jumpViewDate.getFullYear();
-  select.innerHTML="";
-  for(let y=center-50;y<=center+50;y++){
+function populateJumpYears(){
+  const sel=el("jumpYearSelect");
+  const base=jumpViewDate.getFullYear();
+  sel.innerHTML="";
+  for(let y=base-50;y<=base+50;y++){
     const opt=document.createElement("option");
     opt.value=String(y);
     opt.textContent=`${y} 年`;
-    select.appendChild(opt);
+    sel.appendChild(opt);
   }
-  select.value=String(center);
+  sel.value=String(base);
+}
+
+function renderJumpMonthButtons(){
+  const wrap=el("jumpMonthButtons");
+  wrap.innerHTML="";
+  for(let m=0;m<12;m++){
+    const b=document.createElement("button");
+    b.type="button";
+    b.className="jump-month-option";
+    b.textContent=`${m+1} 月`;
+    if(m===jumpViewDate.getMonth()) b.classList.add("active");
+    b.onclick=()=>{
+      jumpViewDate=new Date(jumpViewDate.getFullYear(),m,1);
+      el("jumpYearMonthPanel").classList.add("hidden");
+      renderJumpCalendar();
+    };
+    wrap.appendChild(b);
+  }
 }
 
 function renderJumpCalendar(){
   const y=jumpViewDate.getFullYear();
   const m=jumpViewDate.getMonth();
-  el("jumpMonthTitle").textContent=`${y} 年 ${m+1} 月`;
 
   const grid=el("jumpCalendarGrid");
   grid.innerHTML="";
 
-  const first=new Date(y,m,1);
-  const start=new Date(y,m,1-first.getDay());
+  const firstDay=new Date(y,m,1);
+  const gridStart=new Date(y,m,1-firstDay.getDay());
   const today=new Date();
 
   for(let i=0;i<42;i++){
-    const d=new Date(start);
-    d.setDate(start.getDate()+i);
+    const d=new Date(gridStart);
+    d.setDate(gridStart.getDate()+i);
 
     const btn=document.createElement("button");
     btn.type="button";
     btn.className="jump-calendar-day";
+
     if(d.getMonth()!==m) btn.classList.add("other");
-    if(jumpDateSameDay(d,today)) btn.classList.add("today");
-    if(jumpDateSameDay(d,selectedDate)) btn.classList.add("selected");
+    if(sameCalendarDate(d,today)) btn.classList.add("today");
+    if(sameCalendarDate(d,selectedDate)) btn.classList.add("selected");
 
-    const holiday=getHolidayName(d);
-    btn.innerHTML=`<span class="jump-day-number">${d.getDate()}</span>${holiday?`<span class="jump-day-holiday">${holiday}</span>`:""}`;
-
+    btn.innerHTML=`<span>${d.getDate()}</span>`;
     btn.onclick=()=>{
       selectedDate=new Date(d.getFullYear(),d.getMonth(),d.getDate(),12,0,0);
       currentMonth=new Date(d.getFullYear(),d.getMonth(),1);
@@ -869,25 +865,15 @@ function renderJumpCalendar(){
     grid.appendChild(btn);
   }
 
-  fillJumpYears();
-  renderJumpMonthPicker();
+  populateJumpYears();
+  renderJumpMonthButtons();
 }
 
 function openDateJumpModal(){
   jumpViewDate=new Date(selectedDate.getFullYear(),selectedDate.getMonth(),1);
-  el("jumpYearPanel").classList.add("hidden");
+  el("jumpYearMonthPanel").classList.add("hidden");
   renderJumpCalendar();
   show("dateJumpBackdrop");
-}
-
-function changeJumpMonth(delta){
-  jumpViewDate=new Date(jumpViewDate.getFullYear(),jumpViewDate.getMonth()+delta,1);
-  renderJumpCalendar();
-}
-
-function changeJumpYear(delta){
-  jumpViewDate=new Date(jumpViewDate.getFullYear()+delta,jumpViewDate.getMonth(),1);
-  renderJumpCalendar();
 }
 
 function bind(){
@@ -898,16 +884,37 @@ function bind(){
   el("monthJumpBtn").onclick=openDateJumpModal;
   el("closeDateJump").onclick=()=>hide("dateJumpBackdrop");
   el("cancelDateJump").onclick=()=>hide("dateJumpBackdrop");
-  el("jumpPrevMonth").onclick=()=>changeJumpMonth(-1);
-  el("jumpNextMonth").onclick=()=>changeJumpMonth(1);
-  el("jumpMonthTitle").onclick=()=>el("jumpYearPanel").classList.toggle("hidden");
-  el("jumpYearPrev").onclick=()=>changeJumpYear(-1);
-  el("jumpYearNext").onclick=()=>changeJumpYear(1);
+
+  el("jumpPrevMonth").onclick=()=>{
+    jumpViewDate=new Date(jumpViewDate.getFullYear(),jumpViewDate.getMonth()-1,1);
+    renderJumpCalendar();
+  };
+
+  el("jumpNextMonth").onclick=()=>{
+    jumpViewDate=new Date(jumpViewDate.getFullYear(),jumpViewDate.getMonth()+1,1);
+    renderJumpCalendar();
+  };
+
+  el("jumpMonthTitle").onclick=()=>{
+    el("jumpYearMonthPanel").classList.toggle("hidden");
+  };
+
+  el("jumpPrevYear").onclick=()=>{
+    jumpViewDate=new Date(jumpViewDate.getFullYear()-1,jumpViewDate.getMonth(),1);
+    renderJumpCalendar();
+  };
+
+  el("jumpNextYear").onclick=()=>{
+    jumpViewDate=new Date(jumpViewDate.getFullYear()+1,jumpViewDate.getMonth(),1);
+    renderJumpCalendar();
+  };
+
   el("jumpYearSelect").onchange=()=>{
     const y=Number(el("jumpYearSelect").value);
     jumpViewDate=new Date(y,jumpViewDate.getMonth(),1);
     renderJumpCalendar();
   };
+
   el("jumpTodayBtn").onclick=()=>{
     const now=new Date();
     selectedDate=new Date(now.getFullYear(),now.getMonth(),now.getDate(),12,0,0);
@@ -916,6 +923,8 @@ function bind(){
     renderCalendar();
     renderDayEvents();
     renderUpcomingReminders();
+  };
+    fillDateJumpDays();
   };
   el("addEventBtn").onclick=()=>openEventModal(); el("closeModal").onclick=()=>hide("modalBackdrop"); el("cancelEventBtn").onclick=()=>hide("modalBackdrop"); el("eventForm").onsubmit=saveEvent; el("deleteEventBtn").onclick=deleteCurrentEvent;
   el("settingsBtn").onclick=()=>{openSettings();updateNotificationStatus();}; el("closeSettings").onclick=()=>hide("settingsBackdrop"); el("saveSettingsBtn").onclick=async()=>{profile.memberName=el("memberName").value.trim()||user.email.split("@")[0];saveProfile();await saveCloudProfile();hide("settingsBackdrop");renderDayEvents();};

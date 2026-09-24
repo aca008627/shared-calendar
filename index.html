@@ -11,8 +11,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="行事曆" />
   <link rel="apple-touch-icon" href="./icons/icon-180.png?v=20260912-v20" />
-  <link rel="manifest" href="./manifest.webmanifest?v=20260912-v24" />
-  <link rel="stylesheet" href="./style.css?v=20260912-v24" />
+  <link rel="manifest" href="./manifest.webmanifest?v=20260924-v24-image" />
+  <link rel="stylesheet" href="./style.css?v=20260924-v24-image" />
   <title>行事曆</title>
 </head>
 <body>
@@ -117,6 +117,16 @@
             <option value="10080">1 週前</option></select>
         </label>
         <label>備註<textarea id="eventNote" rows="3" maxlength="300" placeholder="可留空"></textarea></label>
+
+        <div class="event-photo-field">
+          <label>備註圖片（最多 1 張）</label>
+          <input id="eventPhotoInput" type="file" accept="image/*" />
+          <div id="eventPhotoPreviewWrap" class="event-photo-preview-wrap hidden">
+            <img id="eventPhotoPreview" class="event-photo-preview" alt="事件圖片預覽" />
+            <button id="removeEventPhotoBtn" class="danger-btn small-btn" type="button">移除圖片</button>
+          </div>
+          <div id="eventPhotoStatus" class="hint">選取圖片後會自動縮小壓縮，其他共用成員也能看到。</div>
+        </div>
         <div class="actions"><button type="button" id="deleteEventBtn" class="danger-btn hidden">刪除</button><div class="spacer"></div><button type="button" id="cancelEventBtn" class="secondary-btn">取消</button><button type="submit" class="primary-btn">儲存</button></div>
       </form>
     </div>
@@ -124,7 +134,18 @@
 
 
 
-  <div id="dateJumpBackdrop" class="modal-backdrop hidden">
+  
+  <div id="imageViewerBackdrop" class="modal-backdrop hidden">
+    <div class="modal image-viewer-modal">
+      <div class="modal-head">
+        <h2>事件圖片</h2>
+        <button id="closeImageViewer" class="icon-btn" type="button">✕</button>
+      </div>
+      <img id="imageViewerImg" class="image-viewer-img" alt="事件圖片" />
+    </div>
+  </div>
+
+<div id="dateJumpBackdrop" class="modal-backdrop hidden">
     <div class="modal year-overview-modal">
       <div class="modal-head">
         <h2>選擇日期</h2>
@@ -193,6 +214,6 @@
     </div>
   </div>
 
-  <script type="module" src="./app.js?v=20260912-v24"></script>
+  <script type="module" src="./app.js?v=20260924-v24-image"></script>
 </body>
 </html>

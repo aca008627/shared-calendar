@@ -24,7 +24,7 @@ const firebaseConfig = {
   appId: "1:221775752292:web:dae48c0ed86fa660230371"
 };
 
-const BUILD_VERSION = "20260912-v24";
+const BUILD_VERSION = "20260924-v24-image";
 const COLORS = ["#2f6fed","#e74c3c","#20a464","#9b59b6","#f39c12","#00a6b2","#e84393","#6c5ce7"];
 const pad = n => String(n).padStart(2,"0");
 const dateKey = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -136,6 +136,7 @@ let allEvents = [], calendarMeta = null;
 let currentMonth = new Date(); currentMonth.setDate(1);
 let selectedDate = new Date();
 let profile = JSON.parse(localStorage.getItem("sharedCalProfileSecure") || "null");
+let pendingEventImageData = "";
 
 function saveProfile(){ localStorage.setItem("sharedCalProfileSecure", JSON.stringify(profile)); }
 
@@ -712,17 +713,112 @@ function exportEventToAppleCalendar(ev){
   }
 }
 
+
+function readFileAsDataURL(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>resolve(reader.result);
+    reader.onerror=()=>reject(reader.error||new Error("讀取圖片失敗"));
+    reader.readAsDataURL(file);
+  });
+}
+
+function loadImageFromDataURL(dataUrl){
+  return new Promise((resolve,reject)=>{
+    const img=new Image();
+    img.onload=()=>resolve(img);
+    img.onerror=()=>reject(new Error("無法開啟這張圖片"));
+    img.src=dataUrl;
+  });
+}
+
+async function compressEventImage(file){
+  if(!file || !String(file.type||"").startsWith("image/")){
+    throw new Error("請選擇圖片檔案");
+  }
+  if(file.size > 25*1024*1024){
+    throw new Error("圖片太大，請選擇 25MB 以下的圖片");
+  }
+
+  const source=await readFileAsDataURL(file);
+  const img=await loadImageFromDataURL(source);
+
+  let width=img.naturalWidth||img.width;
+  let height=img.naturalHeight||img.height;
+  const maxSide=1400;
+  const firstScale=Math.min(1,maxSide/Math.max(width,height));
+  width=Math.max(1,Math.round(width*firstScale));
+  height=Math.max(1,Math.round(height*firstScale));
+
+  const canvas=document.createElement("canvas");
+  const ctx=canvas.getContext("2d",{alpha:false});
+  if(!ctx) throw new Error("此裝置無法處理圖片");
+
+  let quality=.78;
+  let dataUrl="";
+
+  for(let attempt=0;attempt<8;attempt++){
+    canvas.width=width;
+    canvas.height=height;
+    ctx.fillStyle="#ffffff";
+    ctx.fillRect(0,0,width,height);
+    ctx.drawImage(img,0,0,width,height);
+    dataUrl=canvas.toDataURL("image/jpeg",quality);
+
+    // 約 420 KB 的 data URL，保留 Firestore document 大量安全空間。
+    if(dataUrl.length<=420000) break;
+
+    width=Math.max(480,Math.round(width*.84));
+    height=Math.max(480,Math.round(height*.84));
+    quality=Math.max(.55,quality-.05);
+  }
+
+  if(dataUrl.length>600000){
+    throw new Error("圖片壓縮後仍太大，請換一張較小的圖片");
+  }
+  return dataUrl;
+}
+
+function setEventPhotoPreview(dataUrl){
+  pendingEventImageData=dataUrl||"";
+  const wrap=el("eventPhotoPreviewWrap");
+  const img=el("eventPhotoPreview");
+  if(pendingEventImageData){
+    img.src=pendingEventImageData;
+    wrap.classList.remove("hidden");
+  }else{
+    img.removeAttribute("src");
+    wrap.classList.add("hidden");
+  }
+}
+
+function openImageViewer(dataUrl){
+  if(!dataUrl) return;
+  el("imageViewerImg").src=dataUrl;
+  show("imageViewerBackdrop");
+}
+
 function renderDayEvents(){
   const k=dateKey(selectedDate),weekday=["日","一","二","三","四","五","六"][selectedDate.getDay()];
   el("selectedDateTitle").textContent=`${selectedDate.getMonth()+1} 月 ${selectedDate.getDate()} 日`; const holiday=getHolidayName(selectedDate); el("selectedDateSub").textContent=holiday?`星期${weekday} · ${holiday}`:`星期${weekday}`;
   const events=eventsForDate(selectedDate).sort((a,b)=>(a.time||"99:99").localeCompare(b.time||"99:99")); const list=el("eventList"); list.innerHTML="";
   if(!user){list.innerHTML='<div class="empty">請先登入</div>';return;} if(!profile?.calendarCode){list.innerHTML='<div class="empty">請建立或加入共用行事曆</div>';return;} if(!events.length){list.innerHTML='<div class="empty">這一天還沒有事件</div>';return;}
-  for(const ev of events){ const card=document.createElement("div"); card.className="event-card"; card.innerHTML=`<div class="event-stripe" style="background:${ev.color||'#2f6fed'}"></div><div class="event-card-main">${eventIconHtml(ev)}<div class="event-card-text"><div class="event-title">${escapeHtml(ev.title||"")}</div><div class="event-meta">${eventTimeText(ev)} · ${escapeHtml(ev.ownerName||"成員")}${(ev.recurrence||"none")!=="none"?` · 🔁 ${recurrenceLabel(ev)}`:""}${Number(ev.reminderMinutes||0)?` · 🔔 ${escapeHtml(reminderText(ev))}`:""}</div>${ev.note?`<div class="event-note">${escapeHtml(ev.note)}</div>`:""}</div></div><div class="event-actions"><button class="secondary-btn apple-calendar-btn" type="button">加入 iPhone 行事曆</button><button class="secondary-btn edit-event-btn" type="button">編輯</button></div>`; card.querySelector(".apple-calendar-btn").onclick=()=>exportEventToAppleCalendar(ev); card.querySelector(".edit-event-btn").onclick=()=>openEventModal(ev); list.appendChild(card); }
+  for(const ev of events){
+    const card=document.createElement("div");
+    card.className="event-card";
+    const imageHtml=ev.imageData?`<button class="event-photo-thumb-btn" type="button" aria-label="查看事件圖片"><img class="event-photo-thumb" src="${ev.imageData}" alt="事件圖片"></button>`:"";
+    card.innerHTML=`<div class="event-stripe" style="background:${ev.color||'#2f6fed'}"></div><div class="event-card-main">${eventIconHtml(ev)}<div class="event-card-text"><div class="event-title">${escapeHtml(ev.title||"")}</div><div class="event-meta">${eventTimeText(ev)} · ${escapeHtml(ev.ownerName||"成員")}${(ev.recurrence||"none")!=="none"?` · 🔁 ${recurrenceLabel(ev)}`:""}${Number(ev.reminderMinutes||0)?` · 🔔 ${escapeHtml(reminderText(ev))}`:""}</div>${ev.note?`<div class="event-note">${escapeHtml(ev.note)}</div>`:""}${imageHtml}</div></div><div class="event-actions"><button class="secondary-btn apple-calendar-btn" type="button">加入 iPhone 行事曆</button><button class="secondary-btn edit-event-btn" type="button">編輯</button></div>`;
+    card.querySelector(".apple-calendar-btn").onclick=()=>exportEventToAppleCalendar(ev);
+    card.querySelector(".edit-event-btn").onclick=()=>openEventModal(ev);
+    const photoBtn=card.querySelector(".event-photo-thumb-btn");
+    if(photoBtn) photoBtn.onclick=()=>openImageViewer(ev.imageData);
+    list.appendChild(card);
+  }
 }
 
 function openEventModal(ev=null){
   if(!user || !profile?.calendarCode){ alert("請先登入並開啟共用行事曆"); return; }
-  el("eventForm").reset(); el("eventId").value=ev?.id||""; el("eventTitle").value=ev?.title||""; el("eventDate").value=ev?.date||dateKey(selectedDate); el("eventTime").value=ev?.time||""; el("eventEndDate").value=ev?.endDate||ev?.date||dateKey(selectedDate); el("eventEndTime").value=ev?.endTime||""; el("eventRecurrence").value=ev?.recurrence||"none"; el("eventRecurrenceUntil").value=ev?.recurrenceUntil||""; el("eventReminder").value=String(ev?.reminderMinutes || 0); setEventIconPicker(ev ? normalizeEventIcons(ev) : ["dad"]); el("eventNote").value=ev?.note||""; el("modalTitle").textContent=ev?"編輯事件":"新增事件"; el("deleteEventBtn").classList.toggle("hidden",!ev); show("modalBackdrop");
+  el("eventForm").reset(); el("eventId").value=ev?.id||""; el("eventTitle").value=ev?.title||""; el("eventDate").value=ev?.date||dateKey(selectedDate); el("eventTime").value=ev?.time||""; el("eventEndDate").value=ev?.endDate||ev?.date||dateKey(selectedDate); el("eventEndTime").value=ev?.endTime||""; el("eventRecurrence").value=ev?.recurrence||"none"; el("eventRecurrenceUntil").value=ev?.recurrenceUntil||""; el("eventReminder").value=String(ev?.reminderMinutes || 0); setEventIconPicker(ev ? normalizeEventIcons(ev) : ["dad"]); el("eventNote").value=ev?.note||""; el("eventPhotoInput").value=""; setEventPhotoPreview(ev?.imageData||""); el("eventPhotoStatus").textContent=ev?.imageData?"目前已有圖片，可重新選擇或移除。":"選取圖片後會自動縮小壓縮，其他共用成員也能看到。"; el("modalTitle").textContent=ev?"編輯事件":"新增事件"; el("deleteEventBtn").classList.toggle("hidden",!ev); show("modalBackdrop");
 }
 
 async function saveEvent(e){
@@ -762,6 +858,7 @@ async function saveEvent(e){
     eventIcons:getSelectedEventIcons(),
     reminderMinutes:Number(el("eventReminder").value||0),
     note:el("eventNote").value.trim(),
+    imageData:pendingEventImageData,
     ownerName:profile.memberName,
     ownerEmail:normalizeEmail(user.email),
     color:profile.color,
@@ -921,6 +1018,28 @@ function bind(){
   el("closeModal").onclick=()=>hide("modalBackdrop");
   el("cancelEventBtn").onclick=()=>hide("modalBackdrop");
   el("eventForm").onsubmit=saveEvent;
+  el("eventPhotoInput").onchange=async()=>{
+    const file=el("eventPhotoInput").files?.[0];
+    if(!file) return;
+    el("eventPhotoStatus").textContent="圖片處理中…";
+    try{
+      const dataUrl=await compressEventImage(file);
+      setEventPhotoPreview(dataUrl);
+      el("eventPhotoStatus").textContent="圖片已壓縮完成，儲存事件後會同步給其他成員。";
+    }catch(err){
+      console.error(err);
+      el("eventPhotoInput").value="";
+      el("eventPhotoStatus").textContent="圖片處理失敗。";
+      alert(err.message||"圖片處理失敗");
+    }
+  };
+  el("removeEventPhotoBtn").onclick=()=>{
+    el("eventPhotoInput").value="";
+    setEventPhotoPreview("");
+    el("eventPhotoStatus").textContent="圖片已移除，按儲存後生效。";
+  };
+  el("closeImageViewer").onclick=()=>hide("imageViewerBackdrop");
+  el("imageViewerBackdrop").onclick=e=>{ if(e.target===el("imageViewerBackdrop")) hide("imageViewerBackdrop"); };
   el("deleteEventBtn").onclick=deleteCurrentEvent;
 
   el("settingsBtn").onclick=()=>{

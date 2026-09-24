@@ -192,3 +192,12 @@ Safari 開啟 HTTPS 網站 → 分享 → 加入主畫面。
 - 主月曆星期六、星期日標頭改為紅色。
 - 主月曆六日欄位的日期數字改為紅色。
 - 年度總覽跳轉視窗的星期六、星期日標頭也同步改紅。
+
+## V24 圖片備註版
+- 每個事件可附 1 張圖片。
+- iPhone 可從相簿選圖。
+- 圖片在瀏覽器端自動縮小、轉 JPEG、壓縮後儲存在原本 Firestore event document。
+- 不使用 Firebase Storage，因此不需要 Blaze / Cloud Billing。
+- 事件卡顯示縮圖，點縮圖可放大。
+- Firestore rules 不需要修改。
+- 圖片不會跟著 .ics 匯出到 Apple 行事曆。
